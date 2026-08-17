@@ -20,6 +20,8 @@ import java.util.List;
 public class DashboardPanel extends JPanel {
 
     private final ExpenseService expenseService;
+    private final Frame parentFrame;
+    private final Runnable onDataChanged;
     private final Runnable onAddExpenseRequested;
 
     // KPI card labels
@@ -35,9 +37,12 @@ public class DashboardPanel extends JPanel {
 
     private JTable recentTable;
     private DefaultTableModel recentTableModel;
+    private final java.util.List<Expense> currentRecentExpenses = new java.util.ArrayList<>();
 
-    public DashboardPanel(ExpenseService expenseService, Runnable onAddExpenseRequested) {
+    public DashboardPanel(ExpenseService expenseService, Frame parentFrame, Runnable onDataChanged, Runnable onAddExpenseRequested) {
         this.expenseService = expenseService;
+        this.parentFrame = parentFrame;
+        this.onDataChanged = onDataChanged;
         this.onAddExpenseRequested = onAddExpenseRequested;
 
         setLayout(new BorderLayout(20, 20));
@@ -46,6 +51,10 @@ public class DashboardPanel extends JPanel {
 
         initUI();
         refreshDashboard();
+    }
+
+    public DashboardPanel(ExpenseService expenseService, Runnable onAddExpenseRequested) {
+        this(expenseService, null, null, onAddExpenseRequested);
     }
 
     private void initUI() {
@@ -58,7 +67,7 @@ public class DashboardPanel extends JPanel {
                 "Total Income",
                 totalIncomeValueLabel = new JLabel("0.00"),
                 new Color(16, 185, 129),
-                "💚",
+                "",
                 "All-time income recorded"
         ));
 
@@ -67,7 +76,7 @@ public class DashboardPanel extends JPanel {
                 "Total Expenses",
                 totalExpenseValueLabel = new JLabel("0.00"),
                 new Color(220, 38, 38),
-                "🔴",
+                "",
                 "All-time expenses recorded"
         ));
 
@@ -76,7 +85,7 @@ public class DashboardPanel extends JPanel {
                 "Net Balance",
                 netBalanceValueLabel = new JLabel("0.00"),
                 new Color(37, 99, 235),
-                "⚖️",
+                "",
                 "Income minus Expenses"
         ));
 
@@ -110,7 +119,7 @@ public class DashboardPanel extends JPanel {
         recentPanel.add(recentHeader, BorderLayout.NORTH);
 
         // Table with Type column
-        String[] columns = {"Date", "Type", "Category", "Amount (" + expenseService.getCurrency().getSymbol() + ")", "Description"};
+        String[] columns = {"ID", "Date", "Type", "Category", "Amount (" + expenseService.getCurrency().getSymbol() + ")", "Description"};
         recentTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -123,18 +132,21 @@ public class DashboardPanel extends JPanel {
             public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) && row < recentTableModel.getRowCount()) {
-                    String type = (String) recentTableModel.getValueAt(row, 1);
-                    if ("💚 Income".equals(type)) {
+                    String type = (String) recentTableModel.getValueAt(row, 2);
+                    if ("Income".equals(type)) {
                         c.setBackground(row % 2 == 0 ? new Color(236, 253, 245) : new Color(220, 252, 231));
                     } else {
                         c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
                     }
+                } else if (isRowSelected(row)) {
+                    c.setBackground(new Color(191, 219, 254));
                 }
                 return c;
             }
         };
         recentTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         recentTable.setRowHeight(34);
+        recentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         recentTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         recentTable.getTableHeader().setBackground(new Color(241, 245, 249));
         recentTable.getTableHeader().setForeground(new Color(30, 41, 59));
@@ -142,21 +154,73 @@ public class DashboardPanel extends JPanel {
         recentTable.setGridColor(new Color(241, 245, 249));
 
         // Column widths
-        recentTable.getColumnModel().getColumn(0).setPreferredWidth(90);
-        recentTable.getColumnModel().getColumn(1).setPreferredWidth(80);
-        recentTable.getColumnModel().getColumn(2).setPreferredWidth(130);
-        recentTable.getColumnModel().getColumn(3).setPreferredWidth(110);
-        recentTable.getColumnModel().getColumn(4).setPreferredWidth(250);
+        recentTable.getColumnModel().getColumn(0).setPreferredWidth(70);
+        recentTable.getColumnModel().getColumn(1).setPreferredWidth(90);
+        recentTable.getColumnModel().getColumn(2).setPreferredWidth(80);
+        recentTable.getColumnModel().getColumn(3).setPreferredWidth(130);
+        recentTable.getColumnModel().getColumn(4).setPreferredWidth(110);
+        recentTable.getColumnModel().getColumn(5).setPreferredWidth(230);
 
         // Right align amount
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
-        recentTable.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
+        recentTable.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
 
         // Center align Type
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        recentTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+        recentTable.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
+
+        // Mouse double-click and right-click context menu
+        recentTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    onEditRecentTransaction();
+                }
+            }
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) showPopupMenu(e);
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) showPopupMenu(e);
+            }
+
+            private void showPopupMenu(java.awt.event.MouseEvent e) {
+                int row = recentTable.rowAtPoint(e.getPoint());
+                if (row != -1 && !recentTable.isRowSelected(row)) {
+                    recentTable.setRowSelectionInterval(row, row);
+                }
+                if (recentTable.getSelectedRow() != -1) {
+                    JPopupMenu popup = new JPopupMenu();
+                    JMenuItem editItem = new JMenuItem("Edit Record");
+                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    editItem.addActionListener(ev -> onEditRecentTransaction());
+
+                    JMenuItem deleteItem = new JMenuItem("Delete Record");
+                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    deleteItem.addActionListener(ev -> onDeleteRecentTransaction());
+
+                    popup.add(editItem);
+                    popup.add(deleteItem);
+                    popup.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        });
+
+        // Key listener for Delete key shortcut
+        recentTable.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DELETE || e.getKeyCode() == java.awt.event.KeyEvent.VK_BACK_SPACE) {
+                    onDeleteRecentTransaction();
+                }
+            }
+        });
 
         JScrollPane scrollPane = new JScrollPane(recentTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
@@ -177,15 +241,17 @@ public class DashboardPanel extends JPanel {
                 new EmptyBorder(15, 18, 15, 18)
         ));
 
-        // Header row: icon + title
+        // Header row: title
         JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         headerRow.setOpaque(false);
-        JLabel iconLbl = new JLabel(icon);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+        if (icon != null && !icon.isEmpty()) {
+            JLabel iconLbl = new JLabel(icon);
+            iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+            headerRow.add(iconLbl);
+        }
         JLabel titleLbl = new JLabel(title);
         titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         titleLbl.setForeground(new Color(100, 116, 139));
-        headerRow.add(iconLbl);
         headerRow.add(titleLbl);
 
         valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
@@ -222,12 +288,9 @@ public class DashboardPanel extends JPanel {
 
         JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         titleBox.setOpaque(false);
-        JLabel iconLbl = new JLabel("🎯");
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 13));
         JLabel titleLabel = new JLabel("Monthly Budget");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         titleLabel.setForeground(new Color(100, 116, 139));
-        titleBox.add(iconLbl);
         titleBox.add(titleLabel);
 
         budgetAlertBadgeLabel = new JLabel(" ON TRACK ");
@@ -341,22 +404,80 @@ public class DashboardPanel extends JPanel {
 
         // Recent Transactions (top 8 — mixed income + expense)
         recentTableModel.setRowCount(0);
+        currentRecentExpenses.clear();
         List<Expense> all = expenseService.getAllTransactions();
         int count = 0;
         for (Expense e : all) {
-            String typeLabel = e.isIncome() ? "💚 Income" : "🔴 Expense";
+            String typeLabel = e.isIncome() ? "Income" : "Expense";
             recentTableModel.addRow(new Object[]{
+                    e.getId(),
                     e.getDate().toString(),
                     typeLabel,
                     e.getCategory(),
                     (e.isIncome() ? "+" : "-") + expenseService.formatAmount(e.getAmount()),
                     e.getNotes()
             });
+            currentRecentExpenses.add(e);
             count++;
             if (count >= 8) break;
         }
 
         revalidate();
         repaint();
+    }
+
+    private void onEditRecentTransaction() {
+        int selectedRow = recentTable.getSelectedRow();
+        if (selectedRow == -1 || selectedRow >= currentRecentExpenses.size()) {
+            JOptionPane.showMessageDialog(this, "Please select a row from the recent transactions table to edit.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Expense selected = currentRecentExpenses.get(selectedRow);
+        if (selected == null) return;
+
+        if (selected.isIncome()) {
+            IncomeDialog dialog = new IncomeDialog(parentFrame, "Edit Income Entry", selected, expenseService);
+            dialog.setVisible(true);
+            if (dialog.isConfirmed()) {
+                Expense updated = dialog.getIncome();
+                expenseService.updateTransaction(selected.getId(), updated.getAmount(), updated.getCategory(), updated.getDate(), updated.getNotes(), updated.isIncome());
+                if (onDataChanged != null) onDataChanged.run();
+                else refreshDashboard();
+            }
+        } else {
+            ExpenseDialog dialog = new ExpenseDialog(parentFrame, "Edit Expense Record", selected, expenseService);
+            dialog.setVisible(true);
+            if (dialog.isConfirmed()) {
+                Expense updated = dialog.getExpense();
+                expenseService.updateTransaction(selected.getId(), updated.getAmount(), updated.getCategory(), updated.getDate(), updated.getNotes(), updated.isIncome());
+                if (onDataChanged != null) onDataChanged.run();
+                else refreshDashboard();
+            }
+        }
+    }
+
+    private void onDeleteRecentTransaction() {
+        int selectedRow = recentTable.getSelectedRow();
+        if (selectedRow == -1 || selectedRow >= currentRecentExpenses.size()) {
+            JOptionPane.showMessageDialog(this, "Please select a row from the recent transactions table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Expense selected = currentRecentExpenses.get(selectedRow);
+        if (selected == null) return;
+
+        String type = selected.isIncome() ? "income" : "expense";
+        String details = String.format("%s (%s - %s)", selected.getId(), selected.getCategory(), expenseService.formatAmount(selected.getAmount()));
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to permanently delete this " + type + " record ID: " + details + "?",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            expenseService.deleteTransaction(selected.getId());
+            if (onDataChanged != null) onDataChanged.run();
+            else refreshDashboard();
+        }
     }
 }

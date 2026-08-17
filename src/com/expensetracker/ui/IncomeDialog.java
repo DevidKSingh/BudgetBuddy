@@ -50,13 +50,9 @@ public class IncomeDialog extends JDialog {
         headerRow.setOpaque(false);
         headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel iconLabel = new JLabel("💚 ");
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
-
         JLabel headerLabel = new JLabel(income == null ? "Log New Income Entry" : "Edit Income Entry");
         headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         headerLabel.setForeground(new Color(5, 150, 105));
-        headerRow.add(iconLabel);
         headerRow.add(headerLabel);
         mainPanel.add(headerRow);
         mainPanel.add(Box.createVerticalStrut(6));
@@ -80,7 +76,21 @@ public class IncomeDialog extends JDialog {
 
         // Source / Category ComboBox
         mainPanel.add(createLabel("Income Source / Category:"));
-        categoryComboBox = new JComboBox<>(IncomeCategory.getAllDisplayNames());
+        DefaultComboBoxModel<String> catModel = new DefaultComboBoxModel<>(IncomeCategory.getAllDisplayNames());
+        if (income != null && income.getCategory() != null) {
+            String existingCat = income.getCategory();
+            boolean found = false;
+            for (int i = 0; i < catModel.getSize(); i++) {
+                if (catModel.getElementAt(i).equalsIgnoreCase(existingCat)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                catModel.addElement(existingCat);
+            }
+        }
+        categoryComboBox = new JComboBox<>(catModel);
         categoryComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         categoryComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);

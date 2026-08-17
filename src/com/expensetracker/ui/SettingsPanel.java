@@ -54,7 +54,7 @@ public class SettingsPanel extends JPanel {
         currencyCard.setMaximumSize(new Dimension(800, 180));
         currencyCard.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel currCardTitle = new JLabel("🌐 Preferred Currency Unit");
+        JLabel currCardTitle = new JLabel("Preferred Currency Unit");
         currCardTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
         currCardTitle.setForeground(new Color(30, 41, 59));
 
@@ -100,7 +100,7 @@ public class SettingsPanel extends JPanel {
         infoCard.setMaximumSize(new Dimension(800, 150));
         infoCard.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel infoTitle = new JLabel("ℹ️ Data Storage & System Information");
+        JLabel infoTitle = new JLabel("Data Storage & System Information");
         infoTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
         infoTitle.setForeground(new Color(30, 41, 59));
 

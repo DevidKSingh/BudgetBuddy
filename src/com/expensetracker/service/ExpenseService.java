@@ -91,13 +91,14 @@ public class ExpenseService {
         }
     }
 
-    public synchronized boolean updateExpense(String id, double newAmount, String newCategory, LocalDate newDate, String newNotes) {
+    public synchronized boolean updateTransaction(String id, double newAmount, String newCategory, LocalDate newDate, String newNotes, boolean isIncome) {
         for (Expense e : expenses) {
             if (e.getId().equals(id)) {
                 e.setAmount(newAmount);
                 e.setCategory(newCategory);
                 e.setDate(newDate);
                 e.setNotes(newNotes);
+                e.setIncome(isIncome);
                 sortByDate();
                 saveData();
                 return true;
@@ -106,7 +107,25 @@ public class ExpenseService {
         return false;
     }
 
+    public synchronized boolean updateExpense(String id, double newAmount, String newCategory, LocalDate newDate, String newNotes) {
+        Expense existing = getExpenseById(id);
+        boolean isIncome = existing != null && existing.isIncome();
+        return updateTransaction(id, newAmount, newCategory, newDate, newNotes, isIncome);
+    }
+
+    public synchronized boolean updateIncome(String id, double newAmount, String newCategory, LocalDate newDate, String newNotes) {
+        return updateTransaction(id, newAmount, newCategory, newDate, newNotes, true);
+    }
+
     public synchronized boolean deleteExpense(String id) {
+        return deleteTransaction(id);
+    }
+
+    public synchronized boolean deleteIncome(String id) {
+        return deleteTransaction(id);
+    }
+
+    public synchronized boolean deleteTransaction(String id) {
         boolean removed = expenses.removeIf(e -> e.getId().equals(id));
         if (removed) {
             saveData();

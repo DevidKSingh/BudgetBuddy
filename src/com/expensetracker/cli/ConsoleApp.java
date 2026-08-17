@@ -194,8 +194,19 @@ public class ConsoleApp {
 
     private void updateTransaction() {
         System.out.println("\n--- Edit / Update Transaction Record ---");
-        System.out.print("Enter Transaction ID to edit: ");
+        List<Expense> allTx = expenseService.getAllTransactions();
+        if (allTx.isEmpty()) {
+            System.out.println("No recorded transactions available to edit.");
+            return;
+        }
+
+        System.out.print("Enter Transaction ID to edit (or press ENTER to list transactions): ");
         String id = scanner.nextLine().trim();
+        if (id.isEmpty() || "?".equals(id) || "list".equalsIgnoreCase(id)) {
+            printExpenseTable(allTx);
+            System.out.print("Enter Transaction ID to edit: ");
+            id = scanner.nextLine().trim();
+        }
 
         Expense existing = expenseService.getExpenseById(id);
         if (existing == null) {
@@ -204,25 +215,61 @@ public class ConsoleApp {
         }
 
         String typeStr = existing.isIncome() ? "INCOME" : "EXPENSE";
-        System.out.printf("Current Record [%s]: %s | Category: %s | Date: %s | Amount: %s | Notes: %s%n",
+        System.out.printf("%nCurrent Record [%s]: ID=%s | Category=%s | Date=%s | Amount=%s | Notes=%s%n",
                 typeStr, existing.getId(), existing.getCategory(), existing.getDate(),
                 expenseService.formatAmount(existing.getAmount()), existing.getNotes());
 
-        double amount = readDouble("Enter new amount (" + expenseService.getCurrency().getSymbol() + ") [" + existing.getAmount() + "]: ");
-        
-        System.out.print("Enter new category [" + existing.getCategory() + "]: ");
-        String category = scanner.nextLine().trim();
-        if (category.isEmpty()) category = existing.getCategory();
+        System.out.print("Transaction Type (1=Expense, 2=Income) [Current: " + (existing.isIncome() ? "Income" : "Expense") + "]: ");
+        String typeChoice = scanner.nextLine().trim();
+        boolean isIncome = existing.isIncome();
+        if ("1".equals(typeChoice)) isIncome = false;
+        else if ("2".equals(typeChoice)) isIncome = true;
 
-        LocalDate date = readDate("Enter new date (YYYY-MM-DD) [" + existing.getDate() + "]: ");
-        
+        double amount = readDoubleWithDefault("Enter new amount (" + expenseService.getCurrency().getSymbol() + ") [" + existing.getAmount() + "]: ", existing.getAmount());
+
+        String category = existing.getCategory();
+        System.out.println("Select Category Option:");
+        if (isIncome) {
+            IncomeCategory[] categories = IncomeCategory.values();
+            for (int i = 0; i < categories.length; i++) {
+                System.out.printf("%d. %s%n", i + 1, categories[i].getDisplayName());
+            }
+            System.out.printf("%d. Keep current [%s]%n", categories.length + 1, existing.getCategory());
+            System.out.printf("%d. Custom Category Name%n", categories.length + 2);
+            int catChoice = readInt("Choice (1-" + (categories.length + 2) + ") [Default: " + (categories.length + 1) + "]: ", 1, categories.length + 2);
+            if (catChoice <= categories.length) {
+                category = categories[catChoice - 1].getDisplayName();
+            } else if (catChoice == categories.length + 2) {
+                System.out.print("Enter custom category name: ");
+                String customCat = scanner.nextLine().trim();
+                if (!customCat.isEmpty()) category = customCat;
+            }
+        } else {
+            ExpenseCategory[] categories = ExpenseCategory.values();
+            for (int i = 0; i < categories.length; i++) {
+                System.out.printf("%d. %s%n", i + 1, categories[i].getDisplayName());
+            }
+            System.out.printf("%d. Keep current [%s]%n", categories.length + 1, existing.getCategory());
+            System.out.printf("%d. Custom Category Name%n", categories.length + 2);
+            int catChoice = readInt("Choice (1-" + (categories.length + 2) + ") [Default: " + (categories.length + 1) + "]: ", 1, categories.length + 2);
+            if (catChoice <= categories.length) {
+                category = categories[catChoice - 1].getDisplayName();
+            } else if (catChoice == categories.length + 2) {
+                System.out.print("Enter custom category name: ");
+                String customCat = scanner.nextLine().trim();
+                if (!customCat.isEmpty()) category = customCat;
+            }
+        }
+
+        LocalDate date = readDateWithDefault("Enter new date (YYYY-MM-DD) [" + existing.getDate() + "]: ", existing.getDate());
+
         System.out.print("Enter new notes [" + existing.getNotes() + "]: ");
         String notes = scanner.nextLine().trim();
         if (notes.isEmpty()) notes = existing.getNotes();
 
-        boolean updated = expenseService.updateExpense(id, amount, category, date, notes);
+        boolean updated = expenseService.updateTransaction(id, amount, category, date, notes, isIncome);
         if (updated) {
-            System.out.println("SUCCESS: Transaction ID " + id + " updated.");
+            System.out.println("SUCCESS: Transaction ID " + id + " updated successfully.");
         } else {
             System.out.println("ERROR: Failed to update transaction.");
         }
@@ -230,8 +277,19 @@ public class ConsoleApp {
 
     private void deleteTransaction() {
         System.out.println("\n--- Delete Transaction Record ---");
-        System.out.print("Enter Transaction ID to delete: ");
+        List<Expense> allTx = expenseService.getAllTransactions();
+        if (allTx.isEmpty()) {
+            System.out.println("No recorded transactions available to delete.");
+            return;
+        }
+
+        System.out.print("Enter Transaction ID to delete (or press ENTER to list transactions): ");
         String id = scanner.nextLine().trim();
+        if (id.isEmpty() || "?".equals(id) || "list".equalsIgnoreCase(id)) {
+            printExpenseTable(allTx);
+            System.out.print("Enter Transaction ID to delete: ");
+            id = scanner.nextLine().trim();
+        }
 
         Expense existing = expenseService.getExpenseById(id);
         if (existing == null) {
@@ -240,12 +298,12 @@ public class ConsoleApp {
         }
 
         String typeStr = existing.isIncome() ? "INCOME" : "EXPENSE";
-        System.out.printf("Are you sure you want to delete [%s] of %s (%s - %s)? (y/n): ",
-                typeStr, expenseService.formatAmount(existing.getAmount()), existing.getCategory(), existing.getDate());
+        System.out.printf("Are you sure you want to delete [%s] ID: %s of %s (%s - %s)? (y/n): ",
+                typeStr, existing.getId(), expenseService.formatAmount(existing.getAmount()), existing.getCategory(), existing.getDate());
         String confirm = scanner.nextLine().trim();
         if (confirm.equalsIgnoreCase("y")) {
-            expenseService.deleteExpense(id);
-            System.out.println("SUCCESS: Transaction deleted.");
+            expenseService.deleteTransaction(id);
+            System.out.println("SUCCESS: Transaction ID " + id + " permanently deleted.");
         } else {
             System.out.println("Operation canceled.");
         }
@@ -352,10 +410,10 @@ public class ConsoleApp {
         double limit = expenseService.getMonthlyBudget(ym).getMonthlyLimit();
 
         if (status == ExpenseService.BudgetStatus.EXCEEDED) {
-            System.out.printf("%n[ALERT ⚠️] BUDGET OVERRUN! You spent %s of %s monthly budget for %s (Over by %s)!%n",
+            System.out.printf("%n[ALERT] BUDGET OVERRUN! You spent %s of %s monthly budget for %s (Over by %s)!%n",
                     expenseService.formatAmount(spent), expenseService.formatAmount(limit), ym, expenseService.formatAmount(spent - limit));
         } else if (status == ExpenseService.BudgetStatus.WARNING) {
-            System.out.printf("%n[WARNING ⚠️] Approaching budget limit! Spent %s of %s (%.1f%% used).%n",
+            System.out.printf("%n[WARNING] Approaching budget limit! Spent %s of %s (%.1f%% used).%n",
                     expenseService.formatAmount(spent), expenseService.formatAmount(limit), (spent / limit) * 100);
         }
     }
@@ -485,6 +543,34 @@ public class ConsoleApp {
                 return LocalDate.parse(input);
             } catch (DateTimeParseException e) {
                 System.out.println("Invalid date format. Use YYYY-MM-DD (e.g. 2026-08-01).");
+            }
+        }
+    }
+
+    private double readDoubleWithDefault(String prompt, double defaultVal) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) return defaultVal;
+            try {
+                double val = Double.parseDouble(input);
+                if (val > 0) return val;
+                System.out.println("Amount must be greater than 0.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid numeric input. Try again.");
+            }
+        }
+    }
+
+    private LocalDate readDateWithDefault(String prompt, LocalDate defaultDate) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) return defaultDate;
+            try {
+                return LocalDate.parse(input);
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid date format. Use YYYY-MM-DD.");
             }
         }
     }

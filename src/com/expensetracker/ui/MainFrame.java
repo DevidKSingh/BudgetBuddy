@@ -125,8 +125,8 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        dashboardPanel    = new DashboardPanel(expenseService, () -> expenseTablePanel.onAddExpense());
         expenseTablePanel = new ExpenseTablePanel(expenseService, this, () -> refreshAllViews());
+        dashboardPanel    = new DashboardPanel(expenseService, this, () -> refreshAllViews(), () -> expenseTablePanel.onAddExpense());
         analyticsPanel    = new AnalyticsPanel(expenseService);
         budgetPanel       = new BudgetPanel(expenseService, () -> refreshAllViews());
         settingsPanel     = new SettingsPanel(expenseService, () -> refreshAllViews());
@@ -226,13 +226,13 @@ public class MainFrame extends JFrame {
         if (status == ExpenseService.BudgetStatus.EXCEEDED) {
             double spent = expenseService.getMonthlySpending(currentMonth);
             double limit = expenseService.getMonthlyBudget(currentMonth).getMonthlyLimit();
-            alertBannerLabel.setText(String.format("⚠️ WARNING: You have EXCEEDED your budget limit for %s! Spent %s of %s limit.", currentMonth, expenseService.formatAmount(spent), expenseService.formatAmount(limit)));
+            alertBannerLabel.setText(String.format("WARNING: You have EXCEEDED your budget limit for %s! Spent %s of %s limit.", currentMonth, expenseService.formatAmount(spent), expenseService.formatAmount(limit)));
             alertBanner.setBackground(new Color(225, 29, 72));
             alertBanner.setVisible(true);
         } else if (status == ExpenseService.BudgetStatus.WARNING) {
             double spent = expenseService.getMonthlySpending(currentMonth);
             double limit = expenseService.getMonthlyBudget(currentMonth).getMonthlyLimit();
-            alertBannerLabel.setText(String.format("⚠️ WARNING: You have reached %.0f%% of your budget limit for %s! Spent %s of %s.", (spent / limit) * 100, currentMonth, expenseService.formatAmount(spent), expenseService.formatAmount(limit)));
+            alertBannerLabel.setText(String.format("WARNING: You have reached %.0f%% of your budget limit for %s! Spent %s of %s.", (spent / limit) * 100, currentMonth, expenseService.formatAmount(spent), expenseService.formatAmount(limit)));
             alertBanner.setBackground(new Color(234, 88, 12));
             alertBanner.setVisible(true);
         } else {

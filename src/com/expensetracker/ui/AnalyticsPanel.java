@@ -7,7 +7,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.*;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -285,7 +284,7 @@ public class AnalyticsPanel extends JPanel {
                     Color netColor = net > 0 ? new Color(5, 150, 105) : new Color(185, 28, 28);
                     g2.setColor(netColor);
                     g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
-                    String netStr = (net > 0 ? "▲" : "▼") + expenseService.formatAmount(Math.abs(net));
+                    String netStr = (net > 0 ? "+" : "-") + expenseService.formatAmount(Math.abs(net));
                     FontMetrics fm = g2.getFontMetrics();
                     int nx = groupX + (barTotalW - fm.stringWidth(netStr)) / 2;
                     if (dotY > chartY + 2) {

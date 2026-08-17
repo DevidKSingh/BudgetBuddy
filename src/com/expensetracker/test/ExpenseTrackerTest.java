@@ -124,7 +124,30 @@ public class ExpenseTrackerTest {
             assertCondition(Math.abs(reloadedCurrencyService.getCurrentBalance() - (1000.00 - reloadedCurrencyService.getTotalSpending())) < 0.01, "Net balance mismatch");
             System.out.println("PASSED.");
 
-            System.out.println("\nALL 9 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
+            // Test 10: Edit & Delete Income Records & Type Switching
+            System.out.print("[TEST 10] Edit & Delete Income and Type Conversion... ");
+            // 1. Edit income record
+            boolean incUpdated = service.updateIncome(inc1.getId(), 1200.00, "Bonus", LocalDate.of(2026, 8, 1), "Updated bonus salary");
+            assertCondition(incUpdated, "Income update should return true");
+            Expense fetchedInc = service.getExpenseById(inc1.getId());
+            assertCondition(fetchedInc != null && fetchedInc.isIncome(), "Fetched entry should be income");
+            assertCondition(Math.abs(fetchedInc.getAmount() - 1200.00) < 0.01, "Expected updated income amount 1200.00");
+            assertCondition("Bonus".equals(fetchedInc.getCategory()), "Expected category Bonus");
+
+            // 2. Type conversion (Convert expense e2 to income)
+            boolean typeConverted = service.updateTransaction(e2.getId(), 150.00, "Freelance", e2.getDate(), "Refunded utility as income", true);
+            assertCondition(typeConverted, "Type conversion update should return true");
+            Expense convertedTx = service.getExpenseById(e2.getId());
+            assertCondition(convertedTx != null && convertedTx.isIncome(), "Converted transaction should be income");
+
+            // 3. Delete income record
+            boolean incDeleted = service.deleteIncome(inc1.getId());
+            assertCondition(incDeleted, "deleteIncome should return true");
+            assertCondition(service.getExpenseById(inc1.getId()) == null, "Deleted income should not be found");
+
+            System.out.println("PASSED.");
+
+            System.out.println("\nALL 10 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
 
         } catch (Throwable t) {
             System.err.println("\nTEST FAILED!");

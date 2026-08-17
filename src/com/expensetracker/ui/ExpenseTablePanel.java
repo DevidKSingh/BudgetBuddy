@@ -82,8 +82,8 @@ public class ExpenseTablePanel extends JPanel {
 
         ButtonGroup group = new ButtonGroup();
         btnAll     = createTabButton("All Transactions", TransactionFilter.ALL);
-        btnIncome  = createTabButton("💚  Income",       TransactionFilter.INCOME);
-        btnExpense = createTabButton("🔴  Expenses",     TransactionFilter.EXPENSE);
+        btnIncome  = createTabButton("Income",           TransactionFilter.INCOME);
+        btnExpense = createTabButton("Expenses",         TransactionFilter.EXPENSE);
 
         group.add(btnAll);
         group.add(btnIncome);
@@ -303,6 +303,61 @@ public class ExpenseTablePanel extends JPanel {
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         table.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
 
+        // Double-click to edit & Right-click context menu
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    onEditTransaction();
+                }
+            }
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showPopupMenu(e);
+                }
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showPopupMenu(e);
+                }
+            }
+
+            private void showPopupMenu(java.awt.event.MouseEvent e) {
+                int row = table.rowAtPoint(e.getPoint());
+                if (row != -1 && !table.isRowSelected(row)) {
+                    table.setRowSelectionInterval(row, row);
+                }
+                if (table.getSelectedRow() != -1) {
+                    JPopupMenu popup = new JPopupMenu();
+                    JMenuItem editItem = new JMenuItem("Edit Record");
+                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    editItem.addActionListener(ev -> onEditTransaction());
+
+                    JMenuItem deleteItem = new JMenuItem("Delete Record");
+                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    deleteItem.addActionListener(ev -> onDeleteTransaction());
+
+                    popup.add(editItem);
+                    popup.add(deleteItem);
+                    popup.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        });
+
+        // Key listener for Delete key shortcut
+        table.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DELETE || e.getKeyCode() == java.awt.event.KeyEvent.VK_BACK_SPACE) {
+                    onDeleteTransaction();
+                }
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
 
@@ -394,7 +449,7 @@ public class ExpenseTablePanel extends JPanel {
 
         double totalSum = 0.0;
         for (Expense e : currentDisplayedExpenses) {
-            String typeLabel = e.isIncome() ? "💚 Income" : "🔴 Expense";
+            String typeLabel = e.isIncome() ? "Income" : "Expense";
             String amountStr = expenseService.formatAmount(e.getAmount());
             // When showing all, prefix sign
             if (activeFilter == TransactionFilter.ALL) {

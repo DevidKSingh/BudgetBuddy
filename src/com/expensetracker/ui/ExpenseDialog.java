@@ -64,7 +64,21 @@ public class ExpenseDialog extends JDialog {
 
         // Category ComboBox
         mainPanel.add(createLabel("Category:"));
-        categoryComboBox = new JComboBox<>(ExpenseCategory.getAllDisplayNames());
+        DefaultComboBoxModel<String> catModel = new DefaultComboBoxModel<>(ExpenseCategory.getAllDisplayNames());
+        if (expense != null && expense.getCategory() != null) {
+            String existingCat = expense.getCategory();
+            boolean found = false;
+            for (int i = 0; i < catModel.getSize(); i++) {
+                if (catModel.getElementAt(i).equalsIgnoreCase(existingCat)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                catModel.addElement(existingCat);
+            }
+        }
+        categoryComboBox = new JComboBox<>(catModel);
         categoryComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         categoryComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);

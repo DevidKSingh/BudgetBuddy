@@ -215,17 +215,17 @@ public class BudgetPanel extends JPanel {
 
             ExpenseService.BudgetStatus status = expenseService.getBudgetStatus(currentMonth);
             if (status == ExpenseService.BudgetStatus.EXCEEDED) {
-                statusTitleLabel.setText("⚠️ BUDGET EXCEEDED!");
+                statusTitleLabel.setText("BUDGET EXCEEDED!");
                 statusTitleLabel.setForeground(new Color(225, 29, 72));
                 statusDetailLabel.setText(String.format("Over limit by %s (Spent %s of %s)", expenseService.formatAmount(Math.abs(rem)), expenseService.formatAmount(spent), expenseService.formatAmount(limit)));
                 progressBar.setForeground(new Color(225, 29, 72));
             } else if (status == ExpenseService.BudgetStatus.WARNING) {
-                statusTitleLabel.setText("⚠️ BUDGET WARNING (80%+)");
+                statusTitleLabel.setText("BUDGET WARNING (80%+)");
                 statusTitleLabel.setForeground(new Color(234, 88, 12));
                 statusDetailLabel.setText(String.format("Approaching budget limit. Remaining: %s", expenseService.formatAmount(rem)));
                 progressBar.setForeground(new Color(234, 88, 12));
             } else {
-                statusTitleLabel.setText("✅ BUDGET ON TRACK");
+                statusTitleLabel.setText("BUDGET ON TRACK");
                 statusTitleLabel.setForeground(new Color(16, 185, 129));
                 statusDetailLabel.setText(String.format("Remaining budget: %s of %s limit", expenseService.formatAmount(rem), expenseService.formatAmount(limit)));
                 progressBar.setForeground(new Color(16, 185, 129));
