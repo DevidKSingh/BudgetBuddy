@@ -1,6 +1,5 @@
 package com.expensetracker.ui;
 
-import com.expensetracker.model.Budget;
 import com.expensetracker.model.ExpenseCategory;
 import com.expensetracker.service.ExpenseService;
 
@@ -15,14 +14,15 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Visual analytics panel with Donut Chart (category breakdown) and
- * a smooth daily spending area chart for the current month.
+ * Visual analytics panel with:
+ *   Left:  Donut Chart (expense spending by category)
+ *   Right: Monthly Income vs Expenses grouped bar chart (last 6 months)
  */
 public class AnalyticsPanel extends JPanel {
 
     private final ExpenseService expenseService;
     private final DonutChartPanel donutChartPanel;
-    private final DailyAreaChartPanel dailyAreaChartPanel;
+    private final IncomeVsExpenseBarChart incomeVsExpenseChart;
 
     public AnalyticsPanel(ExpenseService expenseService) {
         this.expenseService = expenseService;
@@ -31,20 +31,20 @@ public class AnalyticsPanel extends JPanel {
         setBackground(new Color(245, 247, 250));
 
         donutChartPanel = new DonutChartPanel();
-        dailyAreaChartPanel = new DailyAreaChartPanel();
+        incomeVsExpenseChart = new IncomeVsExpenseBarChart();
 
         add(donutChartPanel);
-        add(dailyAreaChartPanel);
+        add(incomeVsExpenseChart);
     }
 
     public void refreshAnalytics() {
         donutChartPanel.repaint();
-        dailyAreaChartPanel.repaint();
+        incomeVsExpenseChart.repaint();
     }
 
-    // -------------------------------------------------------------------------
-    //  Donut Chart – Spending by Category (unchanged logic)
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    //  Donut Chart – Spending by Category (unchanged)
+    // =========================================================================
 
     private class DonutChartPanel extends JPanel {
         public DonutChartPanel() {
@@ -102,7 +102,7 @@ public class AnalyticsPanel extends JPanel {
             g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
             g2.setColor(new Color(100, 116, 139));
             FontMetrics fm = g2.getFontMetrics();
-            String label = "Total";
+            String label = "Expenses";
             g2.drawString(label, holeX + (holeSize - fm.stringWidth(label)) / 2, holeY + holeSize / 2 - 10);
 
             g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -129,27 +129,23 @@ public class AnalyticsPanel extends JPanel {
         }
     }
 
-    // -------------------------------------------------------------------------
-    //  Daily Spending Area Chart – current month, one point per day
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    //  Income vs Expenses — Monthly Grouped Bar Chart (last 6 months)
+    // =========================================================================
 
-    private class DailyAreaChartPanel extends JPanel {
+    private class IncomeVsExpenseBarChart extends JPanel {
 
-        private static final int PAD_LEFT   = 62;
+        private static final int PAD_LEFT   = 70;
         private static final int PAD_RIGHT  = 20;
-        private static final int PAD_TOP    = 45;
-        private static final int PAD_BOTTOM = 48;
+        private static final int PAD_TOP    = 55;
+        private static final int PAD_BOTTOM = 52;
 
-        // Accent colors
-        private static final Color LINE_COLOR = new Color(59, 130, 246);       // blue-500
-        private static final Color FILL_TOP   = new Color(59, 130, 246, 90);   // translucent
-        private static final Color FILL_BOT   = new Color(59, 130, 246, 0);    // transparent
-        private static final Color GRID_COLOR = new Color(226, 232, 240);
-        private static final Color AXIS_COLOR = new Color(148, 163, 184);
-        private static final Color DOT_FILL   = Color.WHITE;
-        private static final Color BUDGET_LINE= new Color(239, 68, 68, 180);   // red, semi-transparent
+        private static final Color INCOME_COLOR  = new Color(16, 185, 129);   // emerald
+        private static final Color EXPENSE_COLOR = new Color(239, 68, 68);    // red-500
+        private static final Color GRID_COLOR    = new Color(226, 232, 240);
+        private static final Color AXIS_COLOR    = new Color(148, 163, 184);
 
-        public DailyAreaChartPanel() {
+        public IncomeVsExpenseBarChart() {
             setBackground(Color.WHITE);
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
@@ -161,200 +157,169 @@ public class AnalyticsPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,       RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,  RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-            g2.setRenderingHint(RenderingHints.KEY_RENDERING,          RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 
             int W = getWidth();
             int H = getHeight();
 
-            // --- Title + subtitle ---
-            YearMonth currentMonth = YearMonth.now();
+            // Title
             g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
             g2.setColor(new Color(30, 41, 59));
-            g2.drawString("Daily Spending — " + currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")), 15, 25);
+            g2.drawString("Income vs Expenses — Last 6 Months", 15, 25);
 
-            // --- Fetch data ---
-            Map<LocalDate, Double> rawMap = expenseService.getDailySpending(currentMonth);
+            // Legend
+            int lx = W - 200;
+            int ly = 14;
+            g2.setColor(INCOME_COLOR);
+            g2.fillRoundRect(lx, ly, 12, 12, 4, 4);
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            g2.setColor(new Color(51, 65, 85));
+            g2.drawString("Income", lx + 16, ly + 10);
 
-            if (rawMap.isEmpty()) {
+            g2.setColor(EXPENSE_COLOR);
+            g2.fillRoundRect(lx + 70, ly, 12, 12, 4, 4);
+            g2.setColor(new Color(51, 65, 85));
+            g2.drawString("Expenses", lx + 86, ly + 10);
+
+            // Collect last 6 months
+            YearMonth now = YearMonth.now();
+            List<YearMonth> months = new ArrayList<>();
+            for (int i = 5; i >= 0; i--) {
+                months.add(now.minusMonths(i));
+            }
+
+            double[] incomes  = new double[6];
+            double[] expenses = new double[6];
+            double maxVal = 0.0;
+            for (int i = 0; i < 6; i++) {
+                incomes[i]  = expenseService.getMonthlyIncome(months.get(i));
+                expenses[i] = expenseService.getMonthlySpending(months.get(i));
+                maxVal = Math.max(maxVal, Math.max(incomes[i], expenses[i]));
+            }
+
+            if (maxVal <= 0) {
                 g2.setFont(new Font("Segoe UI", Font.ITALIC, 14));
                 g2.setColor(new Color(148, 163, 184));
-                String msg = "No expenses recorded for " + currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")) + " yet.";
+                String msg = "No income or expense data yet.";
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(msg, (W - fm.stringWidth(msg)) / 2, H / 2);
                 return;
             }
 
-            // Build sorted day list from day-1 through today (or end of month if past)
-            LocalDate firstDay = currentMonth.atDay(1);
-            LocalDate lastDay  = LocalDate.now().isAfter(currentMonth.atEndOfMonth())
-                    ? currentMonth.atEndOfMonth()
-                    : LocalDate.now();
+            double scaleMax = maxVal * 1.15;
 
-            List<LocalDate> days = new ArrayList<>();
-            for (LocalDate d = firstDay; !d.isAfter(lastDay); d = d.plusDays(1)) {
-                days.add(d);
-            }
-            if (days.isEmpty()) {
-                days.add(LocalDate.now());
-            }
-
-            double[] values = new double[days.size()];
-            double maxVal = 0;
-            for (int i = 0; i < days.size(); i++) {
-                values[i] = rawMap.getOrDefault(days.get(i), 0.0);
-                if (values[i] > maxVal) maxVal = values[i];
-            }
-
-            // Include budget in scale if set
-            Budget budget = expenseService.getMonthlyBudget(currentMonth);
-            double budgetLimit = budget != null ? budget.getMonthlyLimit() : 0;
-            double scaleMax = Math.max(maxVal * 1.15, budgetLimit > 0 ? budgetLimit * 1.1 : 1);
-
-            // --- Chart area bounds ---
             int chartX = PAD_LEFT;
             int chartY = PAD_TOP;
             int chartW = W - PAD_LEFT - PAD_RIGHT;
             int chartH = H - PAD_TOP - PAD_BOTTOM;
 
-            // --- Horizontal grid lines + Y labels ---
+            // Horizontal grid + Y labels
             int ySteps = 4;
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             g2.setStroke(new BasicStroke(1f));
             for (int s = 0; s <= ySteps; s++) {
                 double ratio = (double) s / ySteps;
-                int ly = chartY + chartH - (int) (ratio * chartH);
+                int ly2 = chartY + chartH - (int) (ratio * chartH);
                 g2.setColor(GRID_COLOR);
-                g2.drawLine(chartX, ly, chartX + chartW, ly);
-
+                g2.drawLine(chartX, ly2, chartX + chartW, ly2);
                 double yVal = ratio * scaleMax;
                 String yLabel = expenseService.formatAmount(yVal);
                 g2.setColor(AXIS_COLOR);
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(yLabel, chartX - fm.stringWidth(yLabel) - 5, ly + 4);
+                g2.drawString(yLabel, chartX - fm.stringWidth(yLabel) - 5, ly2 + 4);
             }
 
-            // --- Compute pixel coordinates for each data point ---
-            int n = days.size();
-            int[] px = new int[n];
-            int[] py = new int[n];
+            // Bars
+            int n = months.size();
+            int groupW = chartW / n;
+            int barPad = (int) (groupW * 0.12);
+            int barTotalW = groupW - 2 * barPad;
+            int barW = Math.max(6, barTotalW / 2 - 2);
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yy");
+
             for (int i = 0; i < n; i++) {
-                px[i] = chartX + (n == 1 ? chartW / 2 : (int) ((double) i / (n - 1) * chartW));
-                py[i] = chartY + chartH - (int) ((values[i] / scaleMax) * chartH);
-            }
+                int groupX = chartX + i * groupW + barPad;
 
-            // --- Smooth area fill using cubic Bezier ---
-            Path2D area = buildSmoothPath(px, py, true, chartX, chartY, chartH);
-            GradientPaint gp = new GradientPaint(0, chartY, FILL_TOP, 0, chartY + chartH, FILL_BOT);
-            g2.setPaint(gp);
-            g2.fill(area);
-
-            // --- Line on top ---
-            Path2D line = buildSmoothPath(px, py, false, chartX, chartY, chartH);
-            g2.setColor(LINE_COLOR);
-            g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.draw(line);
-
-            // --- Budget limit dashed line ---
-            if (budgetLimit > 0) {
-                int budgetY = chartY + chartH - (int) ((budgetLimit / scaleMax) * chartH);
-                g2.setColor(BUDGET_LINE);
-                g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
-                        new float[]{6f, 4f}, 0f));
-                g2.drawLine(chartX, budgetY, chartX + chartW, budgetY);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-                g2.drawString("Budget", chartX + chartW - 40, budgetY - 4);
-                g2.setStroke(new BasicStroke(1f));
-            }
-
-            // --- Data point dots ---
-            for (int i = 0; i < n; i++) {
-                if (values[i] > 0) {
-                    g2.setColor(LINE_COLOR);
-                    g2.fillOval(px[i] - 5, py[i] - 5, 10, 10);
-                    g2.setColor(DOT_FILL);
-                    g2.fillOval(px[i] - 3, py[i] - 3, 6, 6);
+                // Income bar
+                int incH = (int) ((incomes[i] / scaleMax) * chartH);
+                int incY = chartY + chartH - incH;
+                g2.setColor(INCOME_COLOR);
+                if (incH > 0) {
+                    g2.fillRoundRect(groupX, incY, barW, incH, 4, 4);
+                    // Value label on top
+                    if (incH > 15) {
+                        g2.setColor(Color.WHITE);
+                        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                        String valStr = expenseService.formatAmount(incomes[i]);
+                        FontMetrics fm = g2.getFontMetrics();
+                        if (fm.stringWidth(valStr) + 4 < barW) {
+                            g2.drawString(valStr, groupX + (barW - fm.stringWidth(valStr)) / 2, incY + 12);
+                        }
+                    }
                 }
-            }
 
-            // --- X-axis day labels (show every N days to avoid overlap) ---
-            g2.setStroke(new BasicStroke(1f));
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            g2.setColor(AXIS_COLOR);
-            int labelEvery = Math.max(1, n / 8);
-            DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("d MMM");
-            for (int i = 0; i < n; i += labelEvery) {
-                String lbl = days.get(i).format(dayFmt);
+                // Expense bar
+                int expH = (int) ((expenses[i] / scaleMax) * chartH);
+                int expY = chartY + chartH - expH;
+                g2.setColor(EXPENSE_COLOR);
+                if (expH > 0) {
+                    g2.fillRoundRect(groupX + barW + 2, expY, barW, expH, 4, 4);
+                    if (expH > 15) {
+                        g2.setColor(Color.WHITE);
+                        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                        String valStr = expenseService.formatAmount(expenses[i]);
+                        FontMetrics fm = g2.getFontMetrics();
+                        if (fm.stringWidth(valStr) + 4 < barW) {
+                            g2.drawString(valStr, groupX + barW + 2 + (barW - fm.stringWidth(valStr)) / 2, expY + 12);
+                        }
+                    }
+                }
+
+                // Net balance indicator (small dot/line above bars)
+                double net = incomes[i] - expenses[i];
+                int maxBarH = Math.max(incH, expH);
+                if (net != 0) {
+                    int dotY = chartY + chartH - maxBarH - 14;
+                    Color netColor = net > 0 ? new Color(5, 150, 105) : new Color(185, 28, 28);
+                    g2.setColor(netColor);
+                    g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                    String netStr = (net > 0 ? "▲" : "▼") + expenseService.formatAmount(Math.abs(net));
+                    FontMetrics fm = g2.getFontMetrics();
+                    int nx = groupX + (barTotalW - fm.stringWidth(netStr)) / 2;
+                    if (dotY > chartY + 2) {
+                        g2.drawString(netStr, nx, Math.max(chartY + 12, dotY));
+                    }
+                }
+
+                // X label (month)
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                g2.setColor(new Color(71, 85, 105));
+                String lbl = months.get(i).format(fmt);
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(lbl, px[i] - fm.stringWidth(lbl) / 2, chartY + chartH + 18);
-                // Tick
-                g2.drawLine(px[i], chartY + chartH, px[i], chartY + chartH + 5);
+                int lblX = groupX + (barTotalW - fm.stringWidth(lbl)) / 2;
+                g2.drawString(lbl, lblX, chartY + chartH + 18);
             }
 
-            // --- Baseline axis ---
+            // Baseline
             g2.setColor(new Color(203, 213, 225));
             g2.setStroke(new BasicStroke(1.5f));
             g2.drawLine(chartX, chartY + chartH, chartX + chartW, chartY + chartH);
 
-            // --- Value callout for the highest spending day ---
-            int maxIdx = 0;
-            for (int i = 1; i < n; i++) {
-                if (values[i] > values[maxIdx]) maxIdx = i;
-            }
-            if (values[maxIdx] > 0) {
-                String callout = expenseService.formatAmount(values[maxIdx]);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                FontMetrics fm = g2.getFontMetrics();
-                int cw = fm.stringWidth(callout) + 10;
-                int ch = 20;
-                int cx = px[maxIdx] - cw / 2;
-                int cy = py[maxIdx] - ch - 8;
-                // Clamp to chart bounds
-                cx = Math.max(chartX, Math.min(cx, chartX + chartW - cw));
-                cy = Math.max(chartY + 2, cy);
-
-                // Pill background
-                g2.setColor(LINE_COLOR);
-                g2.fillRoundRect(cx, cy, cw, ch, 8, 8);
-                g2.setColor(Color.WHITE);
-                g2.drawString(callout, cx + 5, cy + ch - 5);
-            }
-        }
-
-        /**
-         * Builds a smooth cubic Bezier path through the data points.
-         * If {@code close} is true, closes the path along the baseline (for area fill).
-         */
-        private Path2D buildSmoothPath(int[] px, int[] py, boolean close,
-                                       int chartX, int chartY, int chartH) {
-            Path2D path = new Path2D.Double();
-            int n = px.length;
-            if (n == 1) {
-                path.moveTo(px[0], py[0]);
-                if (close) {
-                    path.lineTo(px[0], chartY + chartH);
-                    path.lineTo(chartX, chartY + chartH);
-                    path.closePath();
-                }
-                return path;
-            }
-
-            path.moveTo(px[0], py[0]);
-            for (int i = 0; i < n - 1; i++) {
-                double cpx1 = px[i] + (px[i + 1] - px[i]) * 0.4;
-                double cpy1 = py[i];
-                double cpx2 = px[i + 1] - (px[i + 1] - px[i]) * 0.4;
-                double cpy2 = py[i + 1];
-                path.curveTo(cpx1, cpy1, cpx2, cpy2, px[i + 1], py[i + 1]);
-            }
-
-            if (close) {
-                path.lineTo(px[n - 1], chartY + chartH);
-                path.lineTo(px[0], chartY + chartH);
-                path.closePath();
-            }
-            return path;
+            // Summary row at bottom
+            double totalInc = expenseService.getTotalIncome();
+            double totalExp = expenseService.getTotalSpending();
+            double totalBal = totalInc - totalExp;
+            String summary = String.format("All-time: Income %s  |  Expenses %s  |  Balance %s%s",
+                    expenseService.formatAmount(totalInc),
+                    expenseService.formatAmount(totalExp),
+                    totalBal >= 0 ? "+" : "",
+                    expenseService.formatAmount(totalBal));
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            g2.setColor(new Color(100, 116, 139));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(summary, (W - fm.stringWidth(summary)) / 2, chartY + chartH + 38);
         }
     }
 }

@@ -14,6 +14,7 @@ import java.util.*;
 
 /**
  * Service providing core business logic, filtering, aggregations, currency management, and budget tracking.
+ * Now also handles income entries (Expense objects with isIncome=true) alongside expense entries.
  */
 public class ExpenseService {
 
@@ -23,7 +24,15 @@ public class ExpenseService {
         EXCEEDED // Spent > 100% of budget
     }
 
+    /** Filter type for transaction queries. */
+    public enum TransactionFilter {
+        ALL,
+        EXPENSE,
+        INCOME
+    }
+
     private final StorageManager storageManager;
+    /** Unified list — holds both expenses (isIncome=false) and income entries (isIncome=true). */
     private final List<Expense> expenses;
     private final Map<YearMonth, Budget> budgets;
     private Currency currency;
@@ -42,6 +51,18 @@ public class ExpenseService {
         this.currency = storageManager.loadCurrency();
     }
 
+    /**
+     * Reloads expenses, budgets, and settings from disk storage.
+     */
+    public synchronized void reload() {
+        this.expenses.clear();
+        this.expenses.addAll(storageManager.loadExpenses());
+        this.budgets.clear();
+        this.budgets.putAll(storageManager.loadBudgets());
+        this.currency = storageManager.loadCurrency();
+    }
+
+
     // --- Currency Management ---
 
     public synchronized Currency getCurrency() {
@@ -59,12 +80,13 @@ public class ExpenseService {
         return currency.format(amount);
     }
 
-    // --- CRUD Operations ---
+    // --- Expense CRUD Operations ---
 
     public synchronized void addExpense(Expense expense) {
         if (expense != null) {
+            expense.setIncome(false); // ensure flag is correct
             expenses.add(expense);
-            sortExpensesByDate();
+            sortByDate();
             saveData();
         }
     }
@@ -76,7 +98,7 @@ public class ExpenseService {
                 e.setCategory(newCategory);
                 e.setDate(newDate);
                 e.setNotes(newNotes);
-                sortExpensesByDate();
+                sortByDate();
                 saveData();
                 return true;
             }
@@ -93,7 +115,11 @@ public class ExpenseService {
     }
 
     public synchronized List<Expense> getAllExpenses() {
-        return new ArrayList<>(expenses);
+        List<Expense> result = new ArrayList<>();
+        for (Expense e : expenses) {
+            if (!e.isIncome()) result.add(e);
+        }
+        return result;
     }
 
     public synchronized Expense getExpenseById(String id) {
@@ -103,11 +129,45 @@ public class ExpenseService {
         return null;
     }
 
+    // --- Income CRUD Operations ---
+
+    public synchronized void addIncome(Expense income) {
+        if (income != null) {
+            income.setIncome(true); // ensure flag is correct
+            expenses.add(income);
+            sortByDate();
+            saveData();
+        }
+    }
+
+    public synchronized List<Expense> getAllIncomes() {
+        List<Expense> result = new ArrayList<>();
+        for (Expense e : expenses) {
+            if (e.isIncome()) result.add(e);
+        }
+        return result;
+    }
+
+    // --- All Transactions (income + expenses combined) ---
+
+    public synchronized List<Expense> getAllTransactions() {
+        return new ArrayList<>(expenses);
+    }
+
     // --- Filtering ---
 
     public synchronized List<Expense> filterExpenses(LocalDate startDate, LocalDate endDate, String category, String searchKeyword) {
+        return filterTransactions(startDate, endDate, category, searchKeyword, TransactionFilter.EXPENSE);
+    }
+
+    public synchronized List<Expense> filterTransactions(LocalDate startDate, LocalDate endDate, String category,
+                                                          String searchKeyword, TransactionFilter filter) {
         List<Expense> filtered = new ArrayList<>();
         for (Expense e : expenses) {
+            // Type filter
+            if (filter == TransactionFilter.EXPENSE && e.isIncome()) continue;
+            if (filter == TransactionFilter.INCOME && !e.isIncome()) continue;
+
             if (startDate != null && e.getDate().isBefore(startDate)) continue;
             if (endDate != null && e.getDate().isAfter(endDate)) continue;
             if (category != null && !category.equalsIgnoreCase("All Categories") && !e.getCategory().equalsIgnoreCase(category)) {
@@ -142,7 +202,7 @@ public class ExpenseService {
     public synchronized double getMonthlySpending(YearMonth yearMonth) {
         double total = 0.0;
         for (Expense e : expenses) {
-            if (YearMonth.from(e.getDate()).equals(yearMonth)) {
+            if (!e.isIncome() && YearMonth.from(e.getDate()).equals(yearMonth)) {
                 total += e.getAmount();
             }
         }
@@ -164,21 +224,23 @@ public class ExpenseService {
         return BudgetStatus.OK;
     }
 
-    // --- Aggregations & Analytics ---
+    // --- Aggregations & Analytics (Expenses) ---
 
     public synchronized double getTotalSpending() {
         double total = 0.0;
         for (Expense e : expenses) {
-            total += e.getAmount();
+            if (!e.isIncome()) total += e.getAmount();
         }
         return total;
     }
 
     public synchronized Map<String, Double> getSpendingByCategory(List<Expense> expenseList) {
         Map<String, Double> categoryMap = new HashMap<>();
-        List<Expense> targetList = expenseList != null ? expenseList : expenses;
+        List<Expense> targetList = expenseList != null ? expenseList : getAllExpenses();
         for (Expense e : targetList) {
-            categoryMap.put(e.getCategory(), categoryMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
+            if (!e.isIncome()) {
+                categoryMap.put(e.getCategory(), categoryMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
+            }
         }
         return categoryMap;
     }
@@ -186,7 +248,7 @@ public class ExpenseService {
     public synchronized Map<LocalDate, Double> getDailySpending(YearMonth yearMonth) {
         Map<LocalDate, Double> dailyMap = new TreeMap<>();
         for (Expense e : expenses) {
-            if (yearMonth == null || YearMonth.from(e.getDate()).equals(yearMonth)) {
+            if (!e.isIncome() && (yearMonth == null || YearMonth.from(e.getDate()).equals(yearMonth))) {
                 dailyMap.put(e.getDate(), dailyMap.getOrDefault(e.getDate(), 0.0) + e.getAmount());
             }
         }
@@ -196,8 +258,10 @@ public class ExpenseService {
     public synchronized Map<YearMonth, Double> getMonthlySpendingHistory() {
         Map<YearMonth, Double> monthlyMap = new TreeMap<>();
         for (Expense e : expenses) {
-            YearMonth ym = YearMonth.from(e.getDate());
-            monthlyMap.put(ym, monthlyMap.getOrDefault(ym, 0.0) + e.getAmount());
+            if (!e.isIncome()) {
+                YearMonth ym = YearMonth.from(e.getDate());
+                monthlyMap.put(ym, monthlyMap.getOrDefault(ym, 0.0) + e.getAmount());
+            }
         }
         return monthlyMap;
     }
@@ -205,7 +269,7 @@ public class ExpenseService {
     public synchronized Expense getHighestExpense() {
         Expense max = null;
         for (Expense e : expenses) {
-            if (max == null || e.getAmount() > max.getAmount()) {
+            if (!e.isIncome() && (max == null || e.getAmount() > max.getAmount())) {
                 max = e;
             }
         }
@@ -225,6 +289,52 @@ public class ExpenseService {
         return topCat;
     }
 
+    // --- Aggregations & Analytics (Income) ---
+
+    public synchronized double getTotalIncome() {
+        double total = 0.0;
+        for (Expense e : expenses) {
+            if (e.isIncome()) total += e.getAmount();
+        }
+        return total;
+    }
+
+    public synchronized double getCurrentBalance() {
+        return getTotalIncome() - getTotalSpending();
+    }
+
+    public synchronized double getMonthlyIncome(YearMonth yearMonth) {
+        double total = 0.0;
+        for (Expense e : expenses) {
+            if (e.isIncome() && YearMonth.from(e.getDate()).equals(yearMonth)) {
+                total += e.getAmount();
+            }
+        }
+        return total;
+    }
+
+    public synchronized Map<String, Double> getIncomeBySource(List<Expense> incomeList) {
+        Map<String, Double> sourceMap = new HashMap<>();
+        List<Expense> targetList = incomeList != null ? incomeList : getAllIncomes();
+        for (Expense e : targetList) {
+            if (e.isIncome()) {
+                sourceMap.put(e.getCategory(), sourceMap.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
+            }
+        }
+        return sourceMap;
+    }
+
+    public synchronized Map<YearMonth, Double> getMonthlyIncomeHistory() {
+        Map<YearMonth, Double> monthlyMap = new TreeMap<>();
+        for (Expense e : expenses) {
+            if (e.isIncome()) {
+                YearMonth ym = YearMonth.from(e.getDate());
+                monthlyMap.put(ym, monthlyMap.getOrDefault(ym, 0.0) + e.getAmount());
+            }
+        }
+        return monthlyMap;
+    }
+
     // --- Import / Export ---
 
     public void exportToCsv(File file, List<Expense> targetList) throws IOException {
@@ -240,15 +350,15 @@ public class ExpenseService {
                 addedCount++;
             }
         }
-        sortExpensesByDate();
+        sortByDate();
         saveData();
         return addedCount;
     }
 
     // --- Helpers ---
 
-    private void sortExpensesByDate() {
-        expenses.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate())); // Descending order (newest first)
+    private void sortByDate() {
+        expenses.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate())); // Descending (newest first)
     }
 
     private void saveData() {

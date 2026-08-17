@@ -1,18 +1,19 @@
-# 💰 Daily Expense Tracker
+# 💰 Daily Expense & Income Tracker
 
-A **Java desktop application** for tracking personal daily expenses, featuring a modern Swing GUI and a CLI fallback mode. Built with clean MVC architecture, it supports expense categorization, monthly budgeting, visual analytics, CSV export, and persistent local storage.
+A **Java desktop application** for tracking personal finances — both expenses and income — featuring a modern Swing GUI and a CLI fallback mode. Built with clean MVC architecture, it supports income/expense categorization, monthly budgeting, visual analytics, CSV export, and persistent local storage.
 
 ---
 
 ## ✨ Features
 
-- 📊 **Dashboard** — Summary overview with KPIs (total spent, today's expenses, top categories, recent transactions)
-- 🗒️ **Expense Records** — Add, edit, delete, search, and filter expenses by date, category, or keyword
-- 📈 **Analytics & Charts** — Category pie chart and monthly spending bar trend charts
+- 💚 **Income Tracking** — Log income with source categories (Salary, Freelance, Scholarship, Gift, Investment, Rental, Other)
+- 📊 **Dashboard** — 4 KPI cards: Total Income, Total Expenses, Net Balance (Income − Expenses), and Budget Status
+- 📋 **Transactions** — Unified view of all income and expense entries; filter by type (All / Income / Expenses), date, category, or keyword; color-coded rows
+- 📈 **Analytics & Charts** — Expense category donut chart + Monthly Income vs Expenses grouped bar chart (last 6 months)
 - 💰 **Budget & Alerts** — Set monthly budget limits; get color-coded warnings when approaching or exceeding limits
 - ⚙️ **Currency & Settings** — Switch between multiple currencies (USD, EUR, GBP, INR, JPY, CAD, and more)
-- 💾 **Persistent Storage** — All data saved locally as JSON via `StorageManager`
-- 📤 **CSV Export** — Export expense records to CSV for use in spreadsheet tools
+- 💾 **Persistent Storage** — All data saved locally as JSON via `StorageManager` (fully backward-compatible)
+- 📤 **CSV Export** — Export filtered transactions to CSV
 - 🖥️ **Dual Mode** — Runs as a GUI (Swing) app by default, or as a CLI app via `--cli` flag
 
 ---
@@ -100,6 +101,7 @@ javac -d bin -sourcepath src \
   src/com/expensetracker/storage/*.java \
   src/com/expensetracker/service/*.java \
   src/com/expensetracker/ui/*.java \
+  src/com/expensetracker/ui/components/*.java \
   src/com/expensetracker/cli/*.java
 ```
 

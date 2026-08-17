@@ -40,8 +40,8 @@ public class MainFrame extends JFrame {
 
     private void initUI() {
         setTitle("Daily Expense Tracker System");
-        setSize(1150, 750);
-        setMinimumSize(new Dimension(980, 620));
+        setSize(1200, 780);
+        setMinimumSize(new Dimension(1020, 640));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -76,7 +76,7 @@ public class MainFrame extends JFrame {
         appTitle.setForeground(Color.WHITE);
         appTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel appSubtitle = new JLabel("Personal Finance Assistant");
+        JLabel appSubtitle = new JLabel("Income & Expense Manager");
         appSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         appSubtitle.setForeground(new Color(148, 163, 184));
         appSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -85,12 +85,12 @@ public class MainFrame extends JFrame {
         sidebar.add(appSubtitle);
         sidebar.add(Box.createVerticalStrut(25));
 
-        // Navigation Buttons with clear titles and tooltips
-        JButton navDashboard = createNavButton("   Dashboard", "DASHBOARD", "View summary overview, KPIs, and recent transactions");
-        JButton navExpenses = createNavButton("   Expense Records", "EXPENSES", "View, search, filter, edit, or delete expense records");
-        JButton navAnalytics = createNavButton("   Analytics & Charts", "ANALYTICS", "View category pie charts and monthly spending bar trends");
-        JButton navBudget = createNavButton("   Budget & Alerts", "BUDGET", "Configure monthly budget limits and monitor spending warnings");
-        JButton navSettings = createNavButton("   Currency & Settings", "SETTINGS", "Select active currency unit (USD, EUR, GBP, INR, JPY, CAD, etc.)");
+        // Navigation Buttons
+        JButton navDashboard = createNavButton("   Dashboard",           "DASHBOARD", "View summary overview, KPIs, income, expenses, and balance");
+        JButton navExpenses  = createNavButton("   Transactions",         "EXPENSES",  "View, search, filter, edit, or delete all income & expense records");
+        JButton navAnalytics = createNavButton("   Analytics & Charts",   "ANALYTICS", "View category pie charts and income vs expenses bar chart");
+        JButton navBudget    = createNavButton("   Budget & Alerts",      "BUDGET",    "Configure monthly budget limits and monitor spending warnings");
+        JButton navSettings  = createNavButton("   Currency & Settings",  "SETTINGS",  "Select active currency unit (USD, EUR, GBP, INR, JPY, CAD, etc.)");
 
         sidebar.add(navDashboard);
         sidebar.add(Box.createVerticalStrut(10));
@@ -104,18 +104,20 @@ public class MainFrame extends JFrame {
 
         sidebar.add(Box.createVerticalGlue());
 
-        // Quick Add Button at bottom of sidebar
-        JButton quickAddBtn = new JButton("+ Log New Expense");
-        quickAddBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        quickAddBtn.setBackground(new Color(37, 99, 235));
-        quickAddBtn.setForeground(Color.WHITE);
-        quickAddBtn.setFocusPainted(false);
-        quickAddBtn.setToolTipText("Open modal form to record a new expense");
-        quickAddBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        quickAddBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        quickAddBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        quickAddBtn.addActionListener(e -> expenseTablePanel.onAddExpense());
-        sidebar.add(quickAddBtn);
+        // --- Quick Action Buttons at bottom of sidebar ---
+        JButton quickAddExpenseBtn = new JButton("+ Log Expense");
+        styleQuickAddButton(quickAddExpenseBtn, new Color(220, 38, 38), new Color(185, 28, 28));
+        quickAddExpenseBtn.setToolTipText("Open modal form to record a new expense");
+        quickAddExpenseBtn.addActionListener(e -> expenseTablePanel.onAddExpense());
+        sidebar.add(quickAddExpenseBtn);
+
+        sidebar.add(Box.createVerticalStrut(8));
+
+        JButton quickAddIncomeBtn = new JButton("+ Log Income");
+        styleQuickAddButton(quickAddIncomeBtn, new Color(16, 185, 129), new Color(5, 150, 105));
+        quickAddIncomeBtn.setToolTipText("Open modal form to record a new income entry");
+        quickAddIncomeBtn.addActionListener(e -> expenseTablePanel.onAddIncome());
+        sidebar.add(quickAddIncomeBtn);
 
         add(sidebar, BorderLayout.WEST);
 
@@ -123,17 +125,17 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        dashboardPanel = new DashboardPanel(expenseService, () -> expenseTablePanel.onAddExpense());
+        dashboardPanel    = new DashboardPanel(expenseService, () -> expenseTablePanel.onAddExpense());
         expenseTablePanel = new ExpenseTablePanel(expenseService, this, () -> refreshAllViews());
-        analyticsPanel = new AnalyticsPanel(expenseService);
-        budgetPanel = new BudgetPanel(expenseService, () -> refreshAllViews());
-        settingsPanel = new SettingsPanel(expenseService, () -> refreshAllViews());
+        analyticsPanel    = new AnalyticsPanel(expenseService);
+        budgetPanel       = new BudgetPanel(expenseService, () -> refreshAllViews());
+        settingsPanel     = new SettingsPanel(expenseService, () -> refreshAllViews());
 
-        cardPanel.add(dashboardPanel, "DASHBOARD");
+        cardPanel.add(dashboardPanel,    "DASHBOARD");
         cardPanel.add(expenseTablePanel, "EXPENSES");
-        cardPanel.add(analyticsPanel, "ANALYTICS");
-        cardPanel.add(budgetPanel, "BUDGET");
-        cardPanel.add(settingsPanel, "SETTINGS");
+        cardPanel.add(analyticsPanel,    "ANALYTICS");
+        cardPanel.add(budgetPanel,       "BUDGET");
+        cardPanel.add(settingsPanel,     "SETTINGS");
 
         add(cardPanel, BorderLayout.CENTER);
 
@@ -141,6 +143,29 @@ public class MainFrame extends JFrame {
         setActiveNav(navDashboard, "DASHBOARD");
 
         refreshAllViews();
+    }
+
+    private void styleQuickAddButton(JButton btn, Color normalColor, Color hoverColor) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setBackground(normalColor);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorderPainted(false);
+        btn.setOpaque(true);
+
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btn.setBackground(hoverColor);
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btn.setBackground(normalColor);
+            }
+        });
     }
 
     private JButton createNavButton(String text, String cardName, String tooltip) {
@@ -188,6 +213,7 @@ public class MainFrame extends JFrame {
     }
 
     public void refreshAllViews() {
+        expenseService.reload();
         dashboardPanel.refreshDashboard();
         expenseTablePanel.refreshTable();
         analyticsPanel.refreshAnalytics();

@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Persistence layer for saving and loading expenses, budgets, and settings using light JSON format.
+ * Persistence layer for saving and loading expenses (including income entries), budgets, and settings using light JSON format.
+ * The {@code isIncome} field is written for every record and defaults to {@code false} for backward compatibility.
  */
 public class StorageManager {
     private static final String DATA_DIR_NAME = "expense_tracker_data";
@@ -59,7 +60,8 @@ public class StorageManager {
             json.append("    \"category\": \"").append(escapeJson(e.getCategory())).append("\",\n");
             json.append("    \"date\": \"").append(e.getDate().toString()).append("\",\n");
             json.append("    \"notes\": \"").append(escapeJson(e.getNotes())).append("\",\n");
-            json.append("    \"createdAt\": \"").append(e.getCreatedAt().toString()).append("\"\n");
+            json.append("    \"createdAt\": \"").append(e.getCreatedAt().toString()).append("\",\n");
+            json.append("    \"isIncome\": ").append(e.isIncome()).append("\n");
             json.append("  }").append(i < expenses.size() - 1 ? "," : "").append("\n");
         }
         json.append("]");
@@ -230,7 +232,12 @@ public class StorageManager {
                     createdAt = LocalDateTime.parse(values.get("createdAt"));
                 } catch (Exception ignored) {}
             }
-            return new Expense(id, amount, category, date, notes, createdAt);
+            // Backward-compatible: missing isIncome field defaults to false (expense)
+            boolean isIncome = false;
+            if (values.containsKey("isIncome")) {
+                isIncome = "true".equalsIgnoreCase(values.get("isIncome").trim());
+            }
+            return new Expense(id, amount, category, date, notes, createdAt, isIncome);
         } catch (Exception e) {
             return null;
         }

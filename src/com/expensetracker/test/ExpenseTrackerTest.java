@@ -112,7 +112,19 @@ public class ExpenseTrackerTest {
             assertCondition(reloadedCurrencyService.getCurrency() == Currency.EUR, "Reloaded currency should be EUR");
             System.out.println("PASSED.");
 
-            System.out.println("\nALL 8 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
+            // Test 9: Income & Net Balance Calculations
+            System.out.print("[TEST 9] Income Logging & Net Balance... ");
+            Expense inc1 = new Expense(1000.00, "Salary", LocalDate.of(2026, 8, 1), "Monthly salary");
+            service.addIncome(inc1);
+            assertCondition(service.getAllIncomes().size() == 1, "Expected 1 income record");
+            assertCondition(Math.abs(service.getTotalIncome() - 1000.00) < 0.01, "Expected total income 1000.00");
+            
+            reloadedCurrencyService.reload();
+            assertCondition(reloadedCurrencyService.getAllIncomes().size() == 1, "Expected 1 income after reload()");
+            assertCondition(Math.abs(reloadedCurrencyService.getCurrentBalance() - (1000.00 - reloadedCurrencyService.getTotalSpending())) < 0.01, "Net balance mismatch");
+            System.out.println("PASSED.");
+
+            System.out.println("\nALL 9 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
 
         } catch (Throwable t) {
             System.err.println("\nTEST FAILED!");
