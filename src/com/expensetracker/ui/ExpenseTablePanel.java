@@ -41,6 +41,7 @@ public class ExpenseTablePanel extends JPanel {
     private JTextField toDateField;
 
     private JLabel totalSumLabel;
+    private JLabel recordCountLabel;
 
     // Type filter state
     private TransactionFilter activeFilter = TransactionFilter.ALL;
@@ -148,75 +149,86 @@ public class ExpenseTablePanel extends JPanel {
         filterBarPanel.setBackground(Color.WHITE);
         filterBarPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-                new EmptyBorder(10, 14, 10, 14)
+                new EmptyBorder(12, 16, 12, 16)
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(0, 6, 0, 6);
+        gbc.insets = new Insets(4, 6, 4, 6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
-        gbc.gridy = 0;
-        int col = 0;
 
-        // --- Search ---
-        gbc.gridx = col++; gbc.weightx = 0;
+        // --- Row 0: Search and Category ---
+        gbc.gridy = 0;
+
+        // Search label
+        gbc.gridx = 0; gbc.weightx = 0;
         JLabel searchLbl = new JLabel("Search:");
         searchLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         searchLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(searchLbl, gbc);
 
-        gbc.gridx = col++; gbc.weightx = 0.22;
+        // Search field
+        gbc.gridx = 1; gbc.weightx = 0.5;
         searchField = new JTextField();
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         searchField.setToolTipText("Enter text or amount to search");
         filterBarPanel.add(searchField, gbc);
 
-        // --- Category ---
-        gbc.gridx = col++; gbc.weightx = 0;
+        // Category label
+        gbc.gridx = 2; gbc.weightx = 0;
         JLabel catLbl = new JLabel("Category:");
         catLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         catLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(catLbl, gbc);
 
-        gbc.gridx = col++; gbc.weightx = 0.28;
+        // Category dropdown
+        gbc.gridx = 3; gbc.weightx = 0.5; gbc.gridwidth = 3;
         categoryFilterBox = new JComboBox<>(buildCategoryOptions(TransactionFilter.ALL));
         categoryFilterBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         filterBarPanel.add(categoryFilterBox, gbc);
 
-        // --- From ---
-        gbc.gridx = col++; gbc.weightx = 0;
+        // Reset gridwidth for next row
+        gbc.gridwidth = 1;
+
+        // --- Row 1: Date Filters and Buttons ---
+        gbc.gridy = 1;
+
+        // From label
+        gbc.gridx = 0; gbc.weightx = 0;
         JLabel fromLbl = new JLabel("From:");
         fromLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         fromLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(fromLbl, gbc);
 
-        gbc.gridx = col++; gbc.weightx = 0.15;
+        // From date field
+        gbc.gridx = 1; gbc.weightx = 0.3;
         fromDateField = new JTextField();
         fromDateField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         fromDateField.setToolTipText("Start date (YYYY-MM-DD)");
         filterBarPanel.add(fromDateField, gbc);
 
-        // --- To ---
-        gbc.gridx = col++; gbc.weightx = 0;
+        // To label
+        gbc.gridx = 2; gbc.weightx = 0;
         JLabel toLbl = new JLabel("To:");
         toLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         toLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(toLbl, gbc);
 
-        gbc.gridx = col++; gbc.weightx = 0.15;
+        // To date field
+        gbc.gridx = 3; gbc.weightx = 0.3;
         toDateField = new JTextField();
         toDateField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         toDateField.setToolTipText("End date (YYYY-MM-DD)");
         filterBarPanel.add(toDateField, gbc);
 
-        // --- Apply button ---
-        gbc.gridx = col++; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+        // Apply button
+        gbc.gridx = 4; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
         StyledButton applyBtn = new StyledButton("Apply Filters", ButtonType.PRIMARY, "Filter records by entered criteria");
         applyBtn.addActionListener(e -> refreshTable());
         filterBarPanel.add(applyBtn, gbc);
 
-        // --- Reset button ---
-        gbc.gridx = col; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
+        // Reset button
+        gbc.gridx = 5; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
         StyledButton resetBtn = new StyledButton("Reset", ButtonType.SECONDARY, "Clear all filter fields and show all entries");
         resetBtn.addActionListener(e -> {
             searchField.setText("");
@@ -227,17 +239,15 @@ public class ExpenseTablePanel extends JPanel {
         });
         filterBarPanel.add(resetBtn, gbc);
 
-        // We add this inside a wrapper so the tab strip stays NORTH
+        // Wrapper
         JPanel filterWrapper = new JPanel(new BorderLayout());
         filterWrapper.setOpaque(false);
         filterWrapper.add(filterBarPanel, BorderLayout.CENTER);
 
-        // The CENTER will hold both filter bar and table; use a sub-layout
         JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
         centerPanel.setOpaque(false);
         centerPanel.add(filterWrapper, BorderLayout.NORTH);
 
-        // Store ref so we can add the table scroll pane to centerPanel later
         this.centerPanel = centerPanel;
         add(centerPanel, BorderLayout.CENTER);
     }
@@ -369,11 +379,36 @@ public class ExpenseTablePanel extends JPanel {
     // -------------------------------------------------------------------------
 
     private void initFooter() {
-        JPanel footerPanel = new JPanel(new BorderLayout());
+        JPanel footerPanel = new JPanel(new BorderLayout(0, 8));
         footerPanel.setOpaque(false);
 
+        // --- Row 1: Summary Bar (Count on left, Total badge on right) ---
+        JPanel summaryBar = new JPanel(new BorderLayout());
+        summaryBar.setOpaque(false);
+
+        recordCountLabel = new JLabel("Showing 0 transactions");
+        recordCountLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        recordCountLabel.setForeground(new Color(100, 116, 139));
+
+        totalSumLabel = new JLabel("Net Balance: " + expenseService.formatAmount(0));
+        totalSumLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        totalSumLabel.setForeground(new Color(30, 41, 59));
+        totalSumLabel.setOpaque(true);
+        totalSumLabel.setBackground(Color.WHITE);
+        totalSumLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                new EmptyBorder(5, 12, 5, 12)
+        ));
+
+        summaryBar.add(recordCountLabel, BorderLayout.WEST);
+        summaryBar.add(totalSumLabel, BorderLayout.EAST);
+
+        // --- Row 2: Action Buttons Bar ---
+        JPanel actionBar = new JPanel(new BorderLayout(10, 0));
+        actionBar.setOpaque(false);
+
         // Left Action Buttons
-        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftActions.setOpaque(false);
 
         StyledButton addExpenseBtn = new StyledButton("+ Add Expense", ButtonType.DANGER, "Open form to input a new expense record");
@@ -394,12 +429,8 @@ public class ExpenseTablePanel extends JPanel {
         leftActions.add(deleteBtn);
 
         // Right Action Buttons
-        JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightActions.setOpaque(false);
-
-        totalSumLabel = new JLabel("Filtered Total: " + expenseService.formatAmount(0));
-        totalSumLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        totalSumLabel.setForeground(new Color(30, 41, 59));
 
         StyledButton exportBtn = new StyledButton("Export CSV", ButtonType.SECONDARY, "Save current filtered list to a CSV file");
         exportBtn.addActionListener(e -> onExportCsv());
@@ -407,13 +438,14 @@ public class ExpenseTablePanel extends JPanel {
         StyledButton importBtn = new StyledButton("Import CSV", ButtonType.SECONDARY, "Import expense entries from a CSV file");
         importBtn.addActionListener(e -> onImportCsv());
 
-        rightActions.add(totalSumLabel);
-        rightActions.add(Box.createHorizontalStrut(15));
         rightActions.add(exportBtn);
         rightActions.add(importBtn);
 
-        footerPanel.add(leftActions, BorderLayout.WEST);
-        footerPanel.add(rightActions, BorderLayout.EAST);
+        actionBar.add(leftActions, BorderLayout.WEST);
+        actionBar.add(rightActions, BorderLayout.EAST);
+
+        footerPanel.add(summaryBar, BorderLayout.NORTH);
+        footerPanel.add(actionBar, BorderLayout.SOUTH);
 
         add(footerPanel, BorderLayout.SOUTH);
     }
@@ -467,6 +499,9 @@ public class ExpenseTablePanel extends JPanel {
         }
 
         // Label context-sensitive
+        if (recordCountLabel != null) {
+            recordCountLabel.setText("Showing " + currentDisplayedExpenses.size() + " record" + (currentDisplayedExpenses.size() == 1 ? "" : "s"));
+        }
         if (activeFilter == TransactionFilter.INCOME) {
             totalSumLabel.setText("Total Income: " + expenseService.formatAmount(
                     currentDisplayedExpenses.stream().mapToDouble(Expense::getAmount).sum()));

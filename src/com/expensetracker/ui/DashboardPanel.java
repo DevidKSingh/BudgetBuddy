@@ -58,9 +58,29 @@ public class DashboardPanel extends JPanel {
     }
 
     private void initUI() {
-        // --- Top KPI Cards (2 rows x 2 cols or 1 row x 4 cols) ---
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 16, 0));
+        // --- Top KPI Cards (Responsive 1x4 or 2x2) ---
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 14, 14));
         cardsPanel.setOpaque(false);
+
+        cardsPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int w = cardsPanel.getWidth();
+                if (w < 850 && cardsPanel.getLayout() instanceof GridLayout) {
+                    GridLayout gl = (GridLayout) cardsPanel.getLayout();
+                    if (gl.getColumns() != 2) {
+                        cardsPanel.setLayout(new GridLayout(2, 2, 14, 14));
+                        cardsPanel.revalidate();
+                    }
+                } else if (w >= 850 && cardsPanel.getLayout() instanceof GridLayout) {
+                    GridLayout gl = (GridLayout) cardsPanel.getLayout();
+                    if (gl.getColumns() != 4) {
+                        cardsPanel.setLayout(new GridLayout(1, 4, 14, 14));
+                        cardsPanel.revalidate();
+                    }
+                }
+            }
+        });
 
         // Card 1: Total Income (green)
         cardsPanel.add(createSimpleCard(
@@ -89,7 +109,7 @@ public class DashboardPanel extends JPanel {
                 "Income minus Expenses"
         ));
 
-        // Card 4: Budget Status card (existing)
+        // Card 4: Budget Status card
         cardsPanel.add(createBudgetCard());
 
         add(cardsPanel, BorderLayout.NORTH);
@@ -328,8 +348,8 @@ public class DashboardPanel extends JPanel {
         budgetLimitValueLabel.setForeground(new Color(100, 116, 139));
 
         budgetProgressBar = new JProgressBar(0, 100);
-        budgetProgressBar.setPreferredSize(new Dimension(180, 8));
         budgetProgressBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 8));
+        budgetProgressBar.setPreferredSize(new Dimension(100, 8));
         budgetProgressBar.setForeground(new Color(37, 99, 235));
         budgetProgressBar.setBackground(new Color(226, 232, 240));
 
@@ -349,8 +369,8 @@ public class DashboardPanel extends JPanel {
     // -------------------------------------------------------------------------
 
     public void refreshDashboard() {
-        // Update header currency symbol on recent table
-        recentTable.getColumnModel().getColumn(3).setHeaderValue("Amount (" + expenseService.getCurrency().getSymbol() + ")");
+        // Update header currency symbol on recent table (Column 4 is Amount)
+        recentTable.getColumnModel().getColumn(4).setHeaderValue("Amount (" + expenseService.getCurrency().getSymbol() + ")");
         recentTable.getTableHeader().repaint();
 
         // KPI: Total Income

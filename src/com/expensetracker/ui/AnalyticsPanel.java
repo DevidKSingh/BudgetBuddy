@@ -42,16 +42,100 @@ public class AnalyticsPanel extends JPanel {
     }
 
     // =========================================================================
-    //  Donut Chart – Spending by Category (unchanged)
+    // =========================================================================
+    //  Donut Chart – Spending by Category
     // =========================================================================
 
     private class DonutChartPanel extends JPanel {
+
+        // ---- hover state ----
+        private String hoveredText  = null;
+        private Color  hoveredColor = null;
+        private int    mouseX = -1, mouseY = -1;
+
         public DonutChartPanel() {
             setBackground(Color.WHITE);
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
                     new EmptyBorder(15, 15, 15, 15)
             ));
+            setToolTipText(null); // disable default Swing tooltip
+
+            addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                @Override
+                public void mouseMoved(java.awt.event.MouseEvent e) {
+                    mouseX = e.getX();
+                    mouseY = e.getY();
+                    updateHover(e.getX(), e.getY());
+                }
+            });
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    hoveredText  = null;
+                    hoveredColor = null;
+                    mouseX = -1;
+                    mouseY = -1;
+                    repaint();
+                }
+            });
+        }
+
+        private void updateHover(int mx, int my) {
+            Map<String, Double> catMap = expenseService.getSpendingByCategory(null);
+            double total = catMap.values().stream().mapToDouble(Double::doubleValue).sum();
+            if (total <= 0) { hoveredText = null; repaint(); return; }
+
+            int width  = getWidth();
+            int height = getHeight();
+            boolean stackVertical = width < 420;
+            int size;
+            int x, y;
+            if (stackVertical) {
+                size = Math.min(width - 40, height - 60);
+                if (size < 60) size = 60;
+                x = (width - size) / 2;
+                y = 40;
+            } else {
+                size = Math.min(width - 40, height - 70);
+                if (size < 60) size = 60;
+                x = (width - size) / 2;
+                y = (height - size) / 2 + 10;
+            }
+
+            double cx = x + size / 2.0;
+            double cy = y + size / 2.0;
+            double dist = Math.sqrt((mx - cx) * (mx - cx) + (my - cy) * (my - cy));
+            double outerR = size / 2.0;
+            double innerR = (size * 0.55) / 2.0; // matches holeSize / 2
+
+            String found = null;
+            Color  foundColor = null;
+
+            if (dist >= innerR && dist <= outerR) {
+                double angle = Math.toDegrees(Math.atan2(-(my - cy), mx - cx));
+                double normalized = (90 - angle + 360) % 360;
+
+                double startAngle = 0;
+                for (Map.Entry<String, Double> entry : catMap.entrySet()) {
+                    if (entry.getValue() <= 0) continue;
+                    double sweep = (entry.getValue() / total) * 360.0;
+                    if (normalized >= startAngle && normalized < startAngle + sweep) {
+                        ExpenseCategory cat = ExpenseCategory.fromString(entry.getKey());
+                        double pct = (entry.getValue() / total) * 100;
+                        found      = String.format("%s  %.1f%%", cat.getDisplayName(), pct);
+                        foundColor = cat.getColor();
+                        break;
+                    }
+                    startAngle += sweep;
+                }
+            }
+
+            if (!java.util.Objects.equals(found, hoveredText)) {
+                hoveredText  = found;
+                hoveredColor = foundColor;
+                repaint();
+            }
         }
 
         @Override
@@ -77,8 +161,21 @@ public class AnalyticsPanel extends JPanel {
                 return;
             }
 
-            int size = Math.min(width - 180, height - 70);
-            int x = 20, y = 50;
+            boolean stackVertical = width < 420;
+            int size;
+            int x, y;
+
+            if (stackVertical) {
+                size = Math.min(width - 40, height - 60);
+                if (size < 60) size = 60;
+                x = (width - size) / 2;
+                y = 40;
+            } else {
+                size = Math.min(width - 40, height - 70);
+                if (size < 60) size = 60;
+                x = (width - size) / 2;
+                y = (height - size) / 2 + 10;
+            }
 
             double startAngle = 90;
             for (Map.Entry<String, Double> entry : catMap.entrySet()) {
@@ -98,32 +195,46 @@ public class AnalyticsPanel extends JPanel {
             g2.fillOval(holeX, holeY, holeSize, holeSize);
 
             // Center label
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
             g2.setColor(new Color(100, 116, 139));
             FontMetrics fm = g2.getFontMetrics();
-            String label = "Expenses";
-            g2.drawString(label, holeX + (holeSize - fm.stringWidth(label)) / 2, holeY + holeSize / 2 - 10);
+            String label = hoveredText != null ? "" : "Expenses";
+            g2.drawString(label, holeX + (holeSize - fm.stringWidth(label)) / 2, holeY + holeSize / 2 - 8);
 
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
             g2.setColor(new Color(15, 23, 42));
             String totalStr = expenseService.formatAmount(total);
             fm = g2.getFontMetrics();
             g2.drawString(totalStr, holeX + (holeSize - fm.stringWidth(totalStr)) / 2, holeY + holeSize / 2 + 12);
 
-            // Legend
-            int legendX = x + size + 25;
-            int legendY = 60;
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            for (Map.Entry<String, Double> entry : catMap.entrySet()) {
-                if (entry.getValue() <= 0) continue;
-                ExpenseCategory cat = ExpenseCategory.fromString(entry.getKey());
-                g2.setColor(cat.getColor());
-                g2.fillRoundRect(legendX, legendY, 12, 12, 4, 4);
-                g2.setColor(new Color(51, 65, 85));
-                double pct = (entry.getValue() / total) * 100;
-                g2.drawString(String.format("%s (%.1f%%)", cat.getDisplayName(), pct), legendX + 18, legendY + 10);
-                legendY += 22;
-                if (legendY > height - 20) break;
+            // --- Hover tooltip ---
+            if (hoveredText != null && mouseX >= 0 && mouseY >= 0) {
+                String tip = hoveredText;
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                fm = g2.getFontMetrics();
+                int tipW = fm.stringWidth(tip) + 28;
+                int tipH = fm.getHeight() + 12;
+
+                int tipX = mouseX + 14;
+                int tipY = mouseY - tipH / 2;
+                if (tipX + tipW > width - 4) tipX = mouseX - tipW - 10;
+                if (tipY < 4)                tipY = 4;
+                if (tipY + tipH > height - 4) tipY = height - tipH - 4;
+
+                // drop shadow
+                g2.setColor(new Color(0, 0, 0, 35));
+                g2.fillRoundRect(tipX + 2, tipY + 2, tipW, tipH, 10, 10);
+                // background
+                g2.setColor(new Color(15, 23, 42, 225));
+                g2.fillRoundRect(tipX, tipY, tipW, tipH, 10, 10);
+                // colored dot matching the slice
+                if (hoveredColor != null) {
+                    g2.setColor(hoveredColor);
+                    g2.fillOval(tipX + 8, tipY + tipH / 2 - 5, 10, 10);
+                }
+                // text
+                g2.setColor(Color.WHITE);
+                g2.drawString(tip, tipX + 24, tipY + fm.getAscent() + 6);
             }
         }
     }
@@ -134,9 +245,7 @@ public class AnalyticsPanel extends JPanel {
 
     private class IncomeVsExpenseBarChart extends JPanel {
 
-        private static final int PAD_LEFT   = 70;
         private static final int PAD_RIGHT  = 20;
-        private static final int PAD_TOP    = 55;
         private static final int PAD_BOTTOM = 52;
 
         private static final Color INCOME_COLOR  = new Color(16, 185, 129);   // emerald
@@ -165,11 +274,14 @@ public class AnalyticsPanel extends JPanel {
             // Title
             g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
             g2.setColor(new Color(30, 41, 59));
-            g2.drawString("Income vs Expenses — Last 6 Months", 15, 25);
+            g2.drawString("Income vs Expenses", 15, 25);
 
-            // Legend
-            int lx = W - 200;
-            int ly = 14;
+            // Legend layout (side by side if wide enough, otherwise second row)
+            boolean wideLegend = W >= 460;
+            int lx = wideLegend ? W - 180 : 15;
+            int ly = wideLegend ? 14 : 34;
+            int padTop = wideLegend ? 50 : 65;
+
             g2.setColor(INCOME_COLOR);
             g2.fillRoundRect(lx, ly, 12, 12, 4, 4);
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -208,14 +320,25 @@ public class AnalyticsPanel extends JPanel {
 
             double scaleMax = maxVal * 1.15;
 
-            int chartX = PAD_LEFT;
-            int chartY = PAD_TOP;
-            int chartW = W - PAD_LEFT - PAD_RIGHT;
-            int chartH = H - PAD_TOP - PAD_BOTTOM;
-
-            // Horizontal grid + Y labels
+            // Calculate dynamic left padding for Y-axis currency labels
             int ySteps = 4;
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+            FontMetrics fmY = g2.getFontMetrics();
+            int maxLabelWidth = 40;
+            for (int s = 0; s <= ySteps; s++) {
+                String yLabel = expenseService.formatAmount(((double) s / ySteps) * scaleMax);
+                maxLabelWidth = Math.max(maxLabelWidth, fmY.stringWidth(yLabel));
+            }
+            int padLeft = maxLabelWidth + 14;
+
+            int chartX = padLeft;
+            int chartY = padTop;
+            int chartW = W - padLeft - PAD_RIGHT;
+            int chartH = H - padTop - PAD_BOTTOM;
+
+            if (chartW < 50 || chartH < 50) return;
+
+            // Horizontal grid + Y labels
             g2.setStroke(new BasicStroke(1f));
             for (int s = 0; s <= ySteps; s++) {
                 double ratio = (double) s / ySteps;
@@ -225,8 +348,7 @@ public class AnalyticsPanel extends JPanel {
                 double yVal = ratio * scaleMax;
                 String yLabel = expenseService.formatAmount(yVal);
                 g2.setColor(AXIS_COLOR);
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(yLabel, chartX - fm.stringWidth(yLabel) - 5, ly2 + 4);
+                g2.drawString(yLabel, chartX - fmY.stringWidth(yLabel) - 5, ly2 + 4);
             }
 
             // Bars
@@ -234,7 +356,7 @@ public class AnalyticsPanel extends JPanel {
             int groupW = chartW / n;
             int barPad = (int) (groupW * 0.12);
             int barTotalW = groupW - 2 * barPad;
-            int barW = Math.max(6, barTotalW / 2 - 2);
+            int barW = Math.max(4, barTotalW / 2 - 2);
 
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yy");
 
@@ -247,16 +369,6 @@ public class AnalyticsPanel extends JPanel {
                 g2.setColor(INCOME_COLOR);
                 if (incH > 0) {
                     g2.fillRoundRect(groupX, incY, barW, incH, 4, 4);
-                    // Value label on top
-                    if (incH > 15) {
-                        g2.setColor(Color.WHITE);
-                        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
-                        String valStr = expenseService.formatAmount(incomes[i]);
-                        FontMetrics fm = g2.getFontMetrics();
-                        if (fm.stringWidth(valStr) + 4 < barW) {
-                            g2.drawString(valStr, groupX + (barW - fm.stringWidth(valStr)) / 2, incY + 12);
-                        }
-                    }
                 }
 
                 // Expense bar
@@ -265,22 +377,13 @@ public class AnalyticsPanel extends JPanel {
                 g2.setColor(EXPENSE_COLOR);
                 if (expH > 0) {
                     g2.fillRoundRect(groupX + barW + 2, expY, barW, expH, 4, 4);
-                    if (expH > 15) {
-                        g2.setColor(Color.WHITE);
-                        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
-                        String valStr = expenseService.formatAmount(expenses[i]);
-                        FontMetrics fm = g2.getFontMetrics();
-                        if (fm.stringWidth(valStr) + 4 < barW) {
-                            g2.drawString(valStr, groupX + barW + 2 + (barW - fm.stringWidth(valStr)) / 2, expY + 12);
-                        }
-                    }
                 }
 
-                // Net balance indicator (small dot/line above bars)
+                // Net balance indicator (small line/text above bars)
                 double net = incomes[i] - expenses[i];
                 int maxBarH = Math.max(incH, expH);
                 if (net != 0) {
-                    int dotY = chartY + chartH - maxBarH - 14;
+                    int dotY = chartY + chartH - maxBarH - 12;
                     Color netColor = net > 0 ? new Color(5, 150, 105) : new Color(185, 28, 28);
                     g2.setColor(netColor);
                     g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
@@ -288,7 +391,7 @@ public class AnalyticsPanel extends JPanel {
                     FontMetrics fm = g2.getFontMetrics();
                     int nx = groupX + (barTotalW - fm.stringWidth(netStr)) / 2;
                     if (dotY > chartY + 2) {
-                        g2.drawString(netStr, nx, Math.max(chartY + 12, dotY));
+                        g2.drawString(netStr, Math.max(chartX, nx), Math.max(chartY + 12, dotY));
                     }
                 }
 
@@ -310,7 +413,7 @@ public class AnalyticsPanel extends JPanel {
             double totalInc = expenseService.getTotalIncome();
             double totalExp = expenseService.getTotalSpending();
             double totalBal = totalInc - totalExp;
-            String summary = String.format("All-time: Income %s  |  Expenses %s  |  Balance %s%s",
+            String summary = String.format("All-time: Inc %s  |  Exp %s  |  Bal %s%s",
                     expenseService.formatAmount(totalInc),
                     expenseService.formatAmount(totalExp),
                     totalBal >= 0 ? "+" : "",
@@ -318,7 +421,7 @@ public class AnalyticsPanel extends JPanel {
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             g2.setColor(new Color(100, 116, 139));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(summary, (W - fm.stringWidth(summary)) / 2, chartY + chartH + 38);
+            g2.drawString(summary, Math.max(10, (W - fm.stringWidth(summary)) / 2), chartY + chartH + 38);
         }
     }
 }
