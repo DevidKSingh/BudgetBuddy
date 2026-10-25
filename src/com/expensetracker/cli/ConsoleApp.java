@@ -276,34 +276,61 @@ public class ConsoleApp {
     }
 
     private void deleteTransaction() {
-        System.out.println("\n--- Delete Transaction Record ---");
+        System.out.println("\n--- Delete Transaction Record(s) ---");
         List<Expense> allTx = expenseService.getAllTransactions();
         if (allTx.isEmpty()) {
             System.out.println("No recorded transactions available to delete.");
             return;
         }
 
-        System.out.print("Enter Transaction ID to delete (or press ENTER to list transactions): ");
-        String id = scanner.nextLine().trim();
-        if (id.isEmpty() || "?".equals(id) || "list".equalsIgnoreCase(id)) {
+        System.out.print("Enter Transaction ID(s) to delete (comma-separated, or press ENTER to list): ");
+        String input = scanner.nextLine().trim();
+        if (input.isEmpty() || "?".equals(input) || "list".equalsIgnoreCase(input)) {
             printExpenseTable(allTx);
-            System.out.print("Enter Transaction ID to delete: ");
-            id = scanner.nextLine().trim();
+            System.out.print("Enter Transaction ID(s) to delete (comma-separated): ");
+            input = scanner.nextLine().trim();
         }
 
-        Expense existing = expenseService.getExpenseById(id);
-        if (existing == null) {
-            System.out.println("ERROR: No transaction found with ID: " + id);
+        if (input.isEmpty()) {
+            System.out.println("No ID entered. Operation canceled.");
             return;
         }
 
-        String typeStr = existing.isIncome() ? "INCOME" : "EXPENSE";
-        System.out.printf("Are you sure you want to delete [%s] ID: %s of %s (%s - %s)? (y/n): ",
-                typeStr, existing.getId(), expenseService.formatAmount(existing.getAmount()), existing.getCategory(), existing.getDate());
+        String[] rawIds = input.split("[,\\s]+");
+        List<String> validIds = new java.util.ArrayList<>();
+        for (String rawId : rawIds) {
+            String trimmed = rawId.trim();
+            if (!trimmed.isEmpty()) {
+                Expense existing = expenseService.getExpenseById(trimmed);
+                if (existing != null) {
+                    validIds.add(trimmed);
+                } else {
+                    System.out.println("WARNING: No transaction found with ID: " + trimmed);
+                }
+            }
+        }
+
+        if (validIds.isEmpty()) {
+            System.out.println("ERROR: No valid transaction IDs found to delete.");
+            return;
+        }
+
+        if (validIds.size() == 1) {
+            String id = validIds.get(0);
+            Expense existing = expenseService.getExpenseById(id);
+            String typeStr = existing.isIncome() ? "INCOME" : "EXPENSE";
+            System.out.printf("Are you sure you want to delete [%s] ID: %s of %s (%s - %s)? (y/n): ",
+                    typeStr, existing.getId(), expenseService.formatAmount(existing.getAmount()), existing.getCategory(), existing.getDate());
+        } else {
+            System.out.printf("Are you sure you want to delete %d selected transactions? (y/n): ", validIds.size());
+        }
+
         String confirm = scanner.nextLine().trim();
         if (confirm.equalsIgnoreCase("y")) {
-            expenseService.deleteTransaction(id);
-            System.out.println("SUCCESS: Transaction ID " + id + " permanently deleted.");
+            for (String id : validIds) {
+                expenseService.deleteTransaction(id);
+            }
+            System.out.printf("SUCCESS: %d transaction(s) permanently deleted.%n", validIds.size());
         } else {
             System.out.println("Operation canceled.");
         }

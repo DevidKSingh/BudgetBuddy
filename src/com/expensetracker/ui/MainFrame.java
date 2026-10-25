@@ -40,8 +40,8 @@ public class MainFrame extends JFrame {
 
     private void initUI() {
         setTitle("Daily Expense Tracker System");
-        setSize(1200, 780);
-        setMinimumSize(new Dimension(1020, 640));
+        setSize(1300, 840);
+        setMinimumSize(new Dimension(1080, 680));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -57,7 +57,7 @@ public class MainFrame extends JFrame {
         alertBanner.setBackground(new Color(225, 29, 72));
         alertBanner.setBorder(new EmptyBorder(8, 20, 8, 20));
         alertBannerLabel = new JLabel("");
-        alertBannerLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        alertBannerLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         alertBannerLabel.setForeground(Color.WHITE);
         alertBanner.add(alertBannerLabel, BorderLayout.CENTER);
         alertBanner.setVisible(false);
@@ -66,18 +66,18 @@ public class MainFrame extends JFrame {
         // --- Sidebar (Left) ---
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(240, 0));
+        sidebar.setPreferredSize(new Dimension(260, 0));
         sidebar.setBackground(new Color(30, 41, 59)); // Dark slate navy
         sidebar.setBorder(new EmptyBorder(25, 15, 25, 15));
 
         // Logo Title
         JLabel appTitle = new JLabel("ExpenseTracker");
-        appTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        appTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         appTitle.setForeground(Color.WHITE);
         appTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel appSubtitle = new JLabel("Income & Expense Manager");
-        appSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        appSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         appSubtitle.setForeground(new Color(148, 163, 184));
         appSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -146,11 +146,11 @@ public class MainFrame extends JFrame {
     }
 
     private void styleQuickAddButton(JButton btn, Color normalColor, Color hoverColor) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setBackground(normalColor);
         btn.setForeground(Color.WHITE);
         btn.setFocusPainted(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorderPainted(false);
@@ -170,14 +170,14 @@ public class MainFrame extends JFrame {
 
     private JButton createNavButton(String text, String cardName, String tooltip) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         btn.setForeground(new Color(203, 213, 225));
         btn.setBackground(new Color(30, 41, 59));
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setToolTipText(tooltip);
         btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -189,13 +189,13 @@ public class MainFrame extends JFrame {
         if (activeNavButton != null) {
             activeNavButton.setBackground(new Color(30, 41, 59));
             activeNavButton.setForeground(new Color(203, 213, 225));
-            activeNavButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            activeNavButton.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         }
 
         activeNavButton = btn;
         activeNavButton.setBackground(new Color(51, 65, 85));
         activeNavButton.setForeground(Color.WHITE);
-        activeNavButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        activeNavButton.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
         cardLayout.show(cardPanel, cardName);
 

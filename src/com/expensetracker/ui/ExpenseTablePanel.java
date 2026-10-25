@@ -5,6 +5,8 @@ import com.expensetracker.model.ExpenseCategory;
 import com.expensetracker.model.IncomeCategory;
 import com.expensetracker.service.ExpenseService;
 import com.expensetracker.service.ExpenseService.TransactionFilter;
+import com.expensetracker.ui.components.DatePickerField;
+import com.expensetracker.ui.components.MenuIcons;
 import com.expensetracker.ui.components.StyledButton;
 import com.expensetracker.ui.components.StyledButton.ButtonType;
 
@@ -37,8 +39,8 @@ public class ExpenseTablePanel extends JPanel {
 
     private JTextField searchField;
     private JComboBox<String> categoryFilterBox;
-    private JTextField fromDateField;
-    private JTextField toDateField;
+    private DatePickerField fromDateField;
+    private DatePickerField toDateField;
 
     private JLabel totalSumLabel;
     private JLabel recordCountLabel;
@@ -123,12 +125,12 @@ public class ExpenseTablePanel extends JPanel {
                 super.paintComponent(g);
             }
         };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(7, 18, 7, 18));
+        btn.setBorder(new EmptyBorder(9, 20, 9, 20));
 
         btn.addActionListener(e -> {
             activeFilter = filter;
@@ -153,7 +155,7 @@ public class ExpenseTablePanel extends JPanel {
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 6, 4, 6);
+        gbc.insets = new Insets(5, 8, 5, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
@@ -163,28 +165,30 @@ public class ExpenseTablePanel extends JPanel {
         // Search label
         gbc.gridx = 0; gbc.weightx = 0;
         JLabel searchLbl = new JLabel("Search:");
-        searchLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        searchLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         searchLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(searchLbl, gbc);
 
         // Search field
         gbc.gridx = 1; gbc.weightx = 0.5;
         searchField = new JTextField();
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setPreferredSize(new Dimension(0, 38));
         searchField.setToolTipText("Enter text or amount to search");
         filterBarPanel.add(searchField, gbc);
 
         // Category label
         gbc.gridx = 2; gbc.weightx = 0;
         JLabel catLbl = new JLabel("Category:");
-        catLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        catLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         catLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(catLbl, gbc);
 
         // Category dropdown
         gbc.gridx = 3; gbc.weightx = 0.5; gbc.gridwidth = 3;
         categoryFilterBox = new JComboBox<>(buildCategoryOptions(TransactionFilter.ALL));
-        categoryFilterBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        categoryFilterBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        categoryFilterBox.setPreferredSize(new Dimension(0, 38));
         filterBarPanel.add(categoryFilterBox, gbc);
 
         // Reset gridwidth for next row
@@ -196,29 +200,27 @@ public class ExpenseTablePanel extends JPanel {
         // From label
         gbc.gridx = 0; gbc.weightx = 0;
         JLabel fromLbl = new JLabel("From:");
-        fromLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        fromLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         fromLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(fromLbl, gbc);
 
-        // From date field
+        // From date picker
         gbc.gridx = 1; gbc.weightx = 0.3;
-        fromDateField = new JTextField();
-        fromDateField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        fromDateField.setToolTipText("Start date (YYYY-MM-DD)");
+        fromDateField = new DatePickerField("From date");
+        fromDateField.setOnDateChanged(this::refreshTable);
         filterBarPanel.add(fromDateField, gbc);
 
         // To label
         gbc.gridx = 2; gbc.weightx = 0;
         JLabel toLbl = new JLabel("To:");
-        toLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        toLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         toLbl.setForeground(new Color(71, 85, 105));
         filterBarPanel.add(toLbl, gbc);
 
-        // To date field
+        // To date picker
         gbc.gridx = 3; gbc.weightx = 0.3;
-        toDateField = new JTextField();
-        toDateField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        toDateField.setToolTipText("End date (YYYY-MM-DD)");
+        toDateField = new DatePickerField("To date");
+        toDateField.setOnDateChanged(this::refreshTable);
         filterBarPanel.add(toDateField, gbc);
 
         // Apply button
@@ -233,8 +235,8 @@ public class ExpenseTablePanel extends JPanel {
         resetBtn.addActionListener(e -> {
             searchField.setText("");
             categoryFilterBox.setSelectedIndex(0);
-            fromDateField.setText("");
-            toDateField.setText("");
+            fromDateField.clear();
+            toDateField.clear();
             refreshTable();
         });
         filterBarPanel.add(resetBtn, gbc);
@@ -286,22 +288,23 @@ public class ExpenseTablePanel extends JPanel {
                 return c;
             }
         };
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        table.setRowHeight(34);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setRowHeight(44);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
         table.getTableHeader().setBackground(new Color(241, 245, 249));
         table.getTableHeader().setForeground(new Color(30, 41, 59));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 40));
         table.setShowVerticalLines(false);
         table.setGridColor(new Color(241, 245, 249));
 
         // Column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(70);
-        table.getColumnModel().getColumn(1).setPreferredWidth(95);
-        table.getColumnModel().getColumn(2).setPreferredWidth(85);
-        table.getColumnModel().getColumn(3).setPreferredWidth(140);
-        table.getColumnModel().getColumn(4).setPreferredWidth(115);
-        table.getColumnModel().getColumn(5).setPreferredWidth(280);
+        table.getColumnModel().getColumn(0).setPreferredWidth(80);
+        table.getColumnModel().getColumn(1).setPreferredWidth(110);
+        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        table.getColumnModel().getColumn(3).setPreferredWidth(160);
+        table.getColumnModel().getColumn(4).setPreferredWidth(130);
+        table.getColumnModel().getColumn(5).setPreferredWidth(320);
 
         // Right align amount column
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
@@ -342,16 +345,34 @@ public class ExpenseTablePanel extends JPanel {
                     table.setRowSelectionInterval(row, row);
                 }
                 if (table.getSelectedRow() != -1) {
+                    int selCount = table.getSelectedRowCount();
                     JPopupMenu popup = new JPopupMenu();
+
                     JMenuItem editItem = new JMenuItem("Edit Record");
-                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    editItem.setIcon(selCount == 1 ? MenuIcons.editIcon() : MenuIcons.editIconDisabled());
+                    editItem.setIconTextGap(8);
+                    editItem.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 12));
+                    editItem.setEnabled(selCount == 1);
                     editItem.addActionListener(ev -> onEditTransaction());
 
-                    JMenuItem deleteItem = new JMenuItem("Delete Record");
-                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    String deleteLabel = selCount > 1
+                            ? "Delete " + selCount + " Records"
+                            : "Delete Record";
+                    JMenuItem deleteItem = new JMenuItem(deleteLabel);
+                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    deleteItem.setIcon(MenuIcons.deleteIcon());
+                    deleteItem.setIconTextGap(8);
+                    deleteItem.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 12));
+                    deleteItem.setForeground(new Color(220, 38, 38));
                     deleteItem.addActionListener(ev -> onDeleteTransaction());
 
+                    popup.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                            BorderFactory.createEmptyBorder(4, 0, 4, 0)
+                    ));
                     popup.add(editItem);
+                    popup.add(new JSeparator());
                     popup.add(deleteItem);
                     popup.show(e.getComponent(), e.getX(), e.getY());
                 }
@@ -387,17 +408,17 @@ public class ExpenseTablePanel extends JPanel {
         summaryBar.setOpaque(false);
 
         recordCountLabel = new JLabel("Showing 0 transactions");
-        recordCountLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        recordCountLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         recordCountLabel.setForeground(new Color(100, 116, 139));
 
         totalSumLabel = new JLabel("Net Balance: " + expenseService.formatAmount(0));
-        totalSumLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        totalSumLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         totalSumLabel.setForeground(new Color(30, 41, 59));
         totalSumLabel.setOpaque(true);
         totalSumLabel.setBackground(Color.WHITE);
         totalSumLabel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-                new EmptyBorder(5, 12, 5, 12)
+                new EmptyBorder(7, 14, 7, 14)
         ));
 
         summaryBar.add(recordCountLabel, BorderLayout.WEST);
@@ -417,11 +438,18 @@ public class ExpenseTablePanel extends JPanel {
         StyledButton addIncomeBtn = new StyledButton("+ Add Income", ButtonType.SUCCESS, "Open form to record a new income entry");
         addIncomeBtn.addActionListener(e -> onAddIncome());
 
-        StyledButton editBtn = new StyledButton("Edit Selected", ButtonType.SECONDARY, "Edit the currently selected table row");
+        StyledButton editBtn = new StyledButton("Edit Selected", ButtonType.SECONDARY, "Edit the currently selected table row (single selection only)");
         editBtn.addActionListener(e -> onEditTransaction());
 
-        StyledButton deleteBtn = new StyledButton("Delete Selected", ButtonType.SECONDARY, "Delete the currently selected row");
+        StyledButton deleteBtn = new StyledButton("Delete Selected", ButtonType.SECONDARY, "Delete all currently selected rows (supports multi-select)");
         deleteBtn.addActionListener(e -> onDeleteTransaction());
+
+        // Keep Edit button enabled only for single selections
+        table.getSelectionModel().addListSelectionListener(ev -> {
+            if (!ev.getValueIsAdjusting()) {
+                editBtn.setEnabled(table.getSelectedRowCount() == 1);
+            }
+        });
 
         leftActions.add(addExpenseBtn);
         leftActions.add(addIncomeBtn);
@@ -599,25 +627,41 @@ public class ExpenseTablePanel extends JPanel {
     }
 
     private void onDeleteTransaction() {
-        int selectedRow = table.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a row from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+        int[] selectedRows = table.getSelectedRows();
+        if (selectedRows.length == 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select one or more rows from the table to delete.",
+                    "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String id = (String) tableModel.getValueAt(selectedRow, 0);
-        Expense selected = expenseService.getExpenseById(id);
-        String type = (selected != null && selected.isIncome()) ? "income" : "expense";
-        String details = selected != null
-                ? String.format("%s (%s - %s)", id, selected.getCategory(), expenseService.formatAmount(selected.getAmount()))
-                : id;
+        // Collect IDs before any deletion (row indices shift after each delete)
+        List<String> idsToDelete = new ArrayList<>();
+        for (int row : selectedRows) {
+            idsToDelete.add((String) tableModel.getValueAt(row, 0));
+        }
+
+        String confirmMessage;
+        if (idsToDelete.size() == 1) {
+            String id = idsToDelete.get(0);
+            Expense selected = expenseService.getExpenseById(id);
+            String type = (selected != null && selected.isIncome()) ? "income" : "expense";
+            String details = selected != null
+                    ? String.format("%s (%s - %s)", id, selected.getCategory(), expenseService.formatAmount(selected.getAmount()))
+                    : id;
+            confirmMessage = "Are you sure you want to permanently delete this " + type + " record?\n" + details;
+        } else {
+            confirmMessage = "Are you sure you want to permanently delete " + idsToDelete.size() + " selected records?\nThis action cannot be undone.";
+        }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to permanently delete this " + type + " record ID: " + details + "?",
+                confirmMessage,
                 "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            expenseService.deleteExpense(id);
+            for (String id : idsToDelete) {
+                expenseService.deleteExpense(id);
+            }
             refreshTable();
             if (onDataChanged != null) onDataChanged.run();
         }

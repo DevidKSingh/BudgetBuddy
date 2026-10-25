@@ -357,7 +357,7 @@ public class ExpenseService {
     // --- Import / Export ---
 
     public void exportToCsv(File file, List<Expense> targetList) throws IOException {
-        CsvExporter.exportToCsv(file, targetList != null ? targetList : getAllExpenses());
+        CsvExporter.exportToCsv(file, targetList != null ? targetList : getAllTransactions());
     }
 
     public synchronized int importFromCsv(File file) throws IOException {

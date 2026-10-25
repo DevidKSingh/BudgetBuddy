@@ -3,6 +3,7 @@ package com.expensetracker.ui;
 import com.expensetracker.model.Expense;
 import com.expensetracker.model.IncomeCategory;
 import com.expensetracker.service.ExpenseService;
+import com.expensetracker.ui.components.DatePickerField;
 import com.expensetracker.ui.components.StyledButton;
 import com.expensetracker.ui.components.StyledButton.ButtonType;
 
@@ -10,7 +11,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 /**
  * Dialog for adding or editing an income record.
@@ -20,7 +20,7 @@ public class IncomeDialog extends JDialog {
 
     private JTextField amountField;
     private JComboBox<String> categoryComboBox;
-    private JTextField dateField;
+    private DatePickerField datePicker;
     private JTextArea notesArea;
 
     private boolean confirmed = false;
@@ -35,14 +35,14 @@ public class IncomeDialog extends JDialog {
     }
 
     private void initUI() {
-        setSize(450, 530);
+        setSize(480, 560);
         setLocationRelativeTo(getOwner());
         setResizable(false);
         setLayout(new BorderLayout());
 
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
+        mainPanel.setBorder(new EmptyBorder(22, 28, 22, 28));
         mainPanel.setBackground(new Color(240, 253, 248)); // Light mint background
 
         // Title Header with green accent
@@ -51,14 +51,14 @@ public class IncomeDialog extends JDialog {
         headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel headerLabel = new JLabel(income == null ? "Log New Income Entry" : "Edit Income Entry");
-        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         headerLabel.setForeground(new Color(5, 150, 105));
         headerRow.add(headerLabel);
         mainPanel.add(headerRow);
         mainPanel.add(Box.createVerticalStrut(6));
 
         JLabel subLabel = new JLabel("Track your earnings and income sources");
-        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subLabel.setForeground(new Color(100, 116, 139));
         subLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(subLabel);
@@ -69,10 +69,10 @@ public class IncomeDialog extends JDialog {
         amountField = new JTextField();
         styleTextField(amountField);
         if (income != null) {
-            amountField.setText(String.format("%.2f", income.getAmount()));
+            amountField.setText(String.format(java.util.Locale.US, "%.2f", income.getAmount()));
         }
         mainPanel.add(amountField);
-        mainPanel.add(Box.createVerticalStrut(12));
+        mainPanel.add(Box.createVerticalStrut(14));
 
         // Source / Category ComboBox
         mainPanel.add(createLabel("Income Source / Category:"));
@@ -92,31 +92,35 @@ public class IncomeDialog extends JDialog {
         }
         categoryComboBox = new JComboBox<>(catModel);
         categoryComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        categoryComboBox.setPreferredSize(new Dimension(0, 40));
         categoryComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (income != null && income.getCategory() != null) {
             categoryComboBox.setSelectedItem(income.getCategory());
         }
         mainPanel.add(categoryComboBox);
-        mainPanel.add(Box.createVerticalStrut(12));
+        mainPanel.add(Box.createVerticalStrut(14));
 
-        // Date Field (YYYY-MM-DD)
-        mainPanel.add(createLabel("Date (YYYY-MM-DD):"));
-        dateField = new JTextField();
-        styleTextField(dateField);
-        dateField.setText(income != null ? income.getDate().toString() : LocalDate.now().toString());
-        mainPanel.add(dateField);
-        mainPanel.add(Box.createVerticalStrut(12));
+        // Date Picker Field
+        mainPanel.add(createLabel("Date:"));
+        datePicker = new DatePickerField("Select date");
+        datePicker.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        datePicker.setPreferredSize(new Dimension(0, 40));
+        datePicker.setAlignmentX(Component.LEFT_ALIGNMENT);
+        datePicker.setDate(income != null ? income.getDate() : LocalDate.now());
+        mainPanel.add(datePicker);
+        mainPanel.add(Box.createVerticalStrut(14));
 
         // Notes Field
         mainPanel.add(createLabel("Notes / Description (Optional):"));
         notesArea = new JTextArea(3, 20);
-        notesArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        notesArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         notesArea.setLineWrap(true);
         notesArea.setWrapStyleWord(true);
         JScrollPane notesScroll = new JScrollPane(notesArea);
         notesScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        notesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        notesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
+        notesScroll.setPreferredSize(new Dimension(0, 85));
         if (income != null && income.getNotes() != null) {
             notesArea.setText(income.getNotes());
         }
@@ -147,7 +151,7 @@ public class IncomeDialog extends JDialog {
 
     private JLabel createLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
         label.setForeground(new Color(70, 80, 95));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
@@ -155,13 +159,14 @@ public class IncomeDialog extends JDialog {
 
     private void styleTextField(JTextField tf) {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        tf.setPreferredSize(new Dimension(0, 40));
         tf.setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
     private void onSave() {
         String amountText = amountField.getText().trim();
-        String dateText = dateField.getText().trim();
+        LocalDate date = datePicker.getDate();
         String category = (String) categoryComboBox.getSelectedItem();
         String notes = notesArea.getText().trim();
 
@@ -183,16 +188,8 @@ public class IncomeDialog extends JDialog {
             return;
         }
 
-        if (dateText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Date is required.", "Missing Date", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        LocalDate date;
-        try {
-            date = LocalDate.parse(dateText);
-        } catch (DateTimeParseException e) {
-            JOptionPane.showMessageDialog(this, "Invalid date format. Use YYYY-MM-DD (e.g. 2026-08-01).", "Invalid Date", JOptionPane.ERROR_MESSAGE);
+        if (date == null) {
+            JOptionPane.showMessageDialog(this, "Please select a date.", "Missing Date", JOptionPane.ERROR_MESSAGE);
             return;
         }
 

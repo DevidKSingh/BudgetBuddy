@@ -2,6 +2,7 @@ package com.expensetracker.ui;
 
 import com.expensetracker.model.Expense;
 import com.expensetracker.service.ExpenseService;
+import com.expensetracker.ui.components.MenuIcons;
 import com.expensetracker.ui.components.StyledButton;
 import com.expensetracker.ui.components.StyledButton.ButtonType;
 
@@ -126,7 +127,7 @@ public class DashboardPanel extends JPanel {
         JPanel recentHeader = new JPanel(new BorderLayout());
         recentHeader.setOpaque(false);
         JLabel recentTitle = new JLabel("Recent Transactions");
-        recentTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        recentTitle.setFont(new Font("Segoe UI", Font.BOLD, 19));
         recentTitle.setForeground(new Color(30, 41, 59));
 
         StyledButton quickAddBtn = new StyledButton("+ Log New Expense", ButtonType.PRIMARY, "Click to open form and record a new expense");
@@ -164,22 +165,23 @@ public class DashboardPanel extends JPanel {
                 return c;
             }
         };
-        recentTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        recentTable.setRowHeight(34);
+        recentTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        recentTable.setRowHeight(44);
         recentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        recentTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        recentTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
         recentTable.getTableHeader().setBackground(new Color(241, 245, 249));
         recentTable.getTableHeader().setForeground(new Color(30, 41, 59));
+        recentTable.getTableHeader().setPreferredSize(new Dimension(0, 40));
         recentTable.setShowVerticalLines(false);
         recentTable.setGridColor(new Color(241, 245, 249));
 
         // Column widths
-        recentTable.getColumnModel().getColumn(0).setPreferredWidth(70);
-        recentTable.getColumnModel().getColumn(1).setPreferredWidth(90);
-        recentTable.getColumnModel().getColumn(2).setPreferredWidth(80);
-        recentTable.getColumnModel().getColumn(3).setPreferredWidth(130);
-        recentTable.getColumnModel().getColumn(4).setPreferredWidth(110);
-        recentTable.getColumnModel().getColumn(5).setPreferredWidth(230);
+        recentTable.getColumnModel().getColumn(0).setPreferredWidth(80);
+        recentTable.getColumnModel().getColumn(1).setPreferredWidth(110);
+        recentTable.getColumnModel().getColumn(2).setPreferredWidth(95);
+        recentTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        recentTable.getColumnModel().getColumn(4).setPreferredWidth(125);
+        recentTable.getColumnModel().getColumn(5).setPreferredWidth(260);
 
         // Right align amount
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
@@ -217,15 +219,28 @@ public class DashboardPanel extends JPanel {
                 }
                 if (recentTable.getSelectedRow() != -1) {
                     JPopupMenu popup = new JPopupMenu();
+
                     JMenuItem editItem = new JMenuItem("Edit Record");
-                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    editItem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    editItem.setIcon(MenuIcons.editIcon());
+                    editItem.setIconTextGap(8);
+                    editItem.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 12));
                     editItem.addActionListener(ev -> onEditRecentTransaction());
 
                     JMenuItem deleteItem = new JMenuItem("Delete Record");
-                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    deleteItem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    deleteItem.setIcon(MenuIcons.deleteIcon());
+                    deleteItem.setIconTextGap(8);
+                    deleteItem.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 12));
+                    deleteItem.setForeground(new Color(220, 38, 38));
                     deleteItem.addActionListener(ev -> onDeleteRecentTransaction());
 
+                    popup.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                            BorderFactory.createEmptyBorder(4, 0, 4, 0)
+                    ));
                     popup.add(editItem);
+                    popup.add(new JSeparator());
                     popup.add(deleteItem);
                     popup.show(e.getComponent(), e.getX(), e.getY());
                 }
@@ -270,15 +285,15 @@ public class DashboardPanel extends JPanel {
             headerRow.add(iconLbl);
         }
         JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         titleLbl.setForeground(new Color(100, 116, 139));
         headerRow.add(titleLbl);
 
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         valueLabel.setForeground(accentColor);
 
         JLabel subLbl = new JLabel(subtitle);
-        subLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        subLbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subLbl.setForeground(new Color(148, 163, 184));
 
         JPanel body = new JPanel();
@@ -309,7 +324,7 @@ public class DashboardPanel extends JPanel {
         JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         titleBox.setOpaque(false);
         JLabel titleLabel = new JLabel("Monthly Budget");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         titleLabel.setForeground(new Color(100, 116, 139));
         titleBox.add(titleLabel);
 
@@ -340,11 +355,11 @@ public class DashboardPanel extends JPanel {
         bodyPanel.setOpaque(false);
 
         monthlyTotalValueLabel = new JLabel("0.00");
-        monthlyTotalValueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        monthlyTotalValueLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         monthlyTotalValueLabel.setForeground(new Color(15, 23, 42));
 
         budgetLimitValueLabel = new JLabel("of limit");
-        budgetLimitValueLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        budgetLimitValueLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         budgetLimitValueLabel.setForeground(new Color(100, 116, 139));
 
         budgetProgressBar = new JProgressBar(0, 100);

@@ -67,17 +67,27 @@ public class BudgetPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         gbc.gridx = 0; gbc.gridy = 0;
-        formGrid.add(new JLabel("Month (YYYY-MM):"), gbc);
+        JLabel monthLbl = new JLabel("Month (YYYY-MM):");
+        monthLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        monthLbl.setForeground(new Color(71, 85, 105));
+        formGrid.add(monthLbl, gbc);
+
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1.0;
         monthField = new JTextField(YearMonth.now().toString());
-        monthField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        monthField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        monthField.setPreferredSize(new Dimension(160, 38));
         formGrid.add(monthField, gbc);
 
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
-        formGrid.add(new JLabel("Budget Limit (" + expenseService.getCurrency().getSymbol() + "):"), gbc);
+        JLabel limitLbl = new JLabel("Budget Limit (" + expenseService.getCurrency().getSymbol() + "):");
+        limitLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        limitLbl.setForeground(new Color(71, 85, 105));
+        formGrid.add(limitLbl, gbc);
+
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1.0;
         budgetLimitField = new JTextField();
-        budgetLimitField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        budgetLimitField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        budgetLimitField.setPreferredSize(new Dimension(160, 38));
         formGrid.add(budgetLimitField, gbc);
 
         gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 0;
@@ -110,16 +120,16 @@ public class BudgetPanel extends JPanel {
         statusTitleLabel.setForeground(new Color(16, 185, 129));
 
         statusDetailLabel = new JLabel("Spending is within budget limits.");
-        statusDetailLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        statusDetailLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         statusDetailLabel.setForeground(new Color(100, 116, 139));
 
         progressBar = new JProgressBar(0, 100);
-        progressBar.setPreferredSize(new Dimension(250, 12));
+        progressBar.setPreferredSize(new Dimension(250, 16));
         progressBar.setForeground(new Color(16, 185, 129));
 
         statusContent.add(Box.createVerticalStrut(10));
         statusContent.add(statusTitleLabel);
-        statusContent.add(Box.createVerticalStrut(5));
+        statusContent.add(Box.createVerticalStrut(6));
         statusContent.add(statusDetailLabel);
         statusContent.add(Box.createVerticalStrut(15));
         statusContent.add(progressBar);
@@ -151,9 +161,9 @@ public class BudgetPanel extends JPanel {
         };
 
         historyTable = new JTable(historyTableModel);
-        historyTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        historyTable.setRowHeight(34);
-        historyTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        historyTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        historyTable.setRowHeight(38);
+        historyTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
         historyTable.getTableHeader().setBackground(new Color(241, 245, 249));
         historyTable.getTableHeader().setForeground(new Color(30, 41, 59));
         historyTable.setShowVerticalLines(false);

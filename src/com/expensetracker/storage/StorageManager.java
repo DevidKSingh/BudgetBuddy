@@ -83,7 +83,7 @@ public class StorageManager {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                sb.append(line);
+                sb.append(line).append("\n");
             }
             String content = sb.toString().trim();
             if (content.startsWith("[") && content.endsWith("]")) {
@@ -133,7 +133,7 @@ public class StorageManager {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                sb.append(line);
+                sb.append(line).append("\n");
             }
             String content = sb.toString().trim();
             if (content.startsWith("[") && content.endsWith("]")) {
@@ -260,9 +260,40 @@ public class StorageManager {
         if (content.startsWith("{")) content = content.substring(1);
         if (content.endsWith("}")) content = content.substring(0, content.length() - 1);
 
-        String[] pairs = content.split(",\n|,\r\n|,");
+        List<String> pairs = new ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < content.length(); i++) {
+            char c = content.charAt(i);
+            if (c == '"' && (i == 0 || content.charAt(i - 1) != '\\')) {
+                inQuotes = !inQuotes;
+            }
+            if (c == ',' && !inQuotes) {
+                if (current.length() > 0) {
+                    pairs.add(current.toString().trim());
+                    current = new StringBuilder();
+                }
+            } else {
+                current.append(c);
+            }
+        }
+        if (current.length() > 0) {
+            pairs.add(current.toString().trim());
+        }
+
         for (String pair : pairs) {
-            int colonIdx = pair.indexOf(':');
+            int colonIdx = -1;
+            boolean inQ = false;
+            for (int i = 0; i < pair.length(); i++) {
+                char c = pair.charAt(i);
+                if (c == '"' && (i == 0 || pair.charAt(i - 1) != '\\')) {
+                    inQ = !inQ;
+                }
+                if (c == ':' && !inQ) {
+                    colonIdx = i;
+                    break;
+                }
+            }
             if (colonIdx != -1) {
                 String key = pair.substring(0, colonIdx).trim().replace("\"", "");
                 String value = pair.substring(colonIdx + 1).trim();

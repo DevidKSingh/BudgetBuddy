@@ -3,6 +3,7 @@ package com.expensetracker.ui;
 import com.expensetracker.model.Expense;
 import com.expensetracker.model.ExpenseCategory;
 import com.expensetracker.service.ExpenseService;
+import com.expensetracker.ui.components.DatePickerField;
 import com.expensetracker.ui.components.StyledButton;
 import com.expensetracker.ui.components.StyledButton.ButtonType;
 
@@ -10,7 +11,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 /**
  * Dialog for adding or editing an expense record with form validation, currency formatting, and styled buttons.
@@ -19,7 +19,7 @@ public class ExpenseDialog extends JDialog {
 
     private JTextField amountField;
     private JComboBox<String> categoryComboBox;
-    private JTextField dateField;
+    private DatePickerField datePicker;
     private JTextArea notesArea;
 
     private boolean confirmed = false;
@@ -34,19 +34,19 @@ public class ExpenseDialog extends JDialog {
     }
 
     private void initUI() {
-        setSize(450, 520);
+        setSize(480, 540);
         setLocationRelativeTo(getOwner());
         setResizable(false);
         setLayout(new BorderLayout());
 
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
+        mainPanel.setBorder(new EmptyBorder(22, 28, 22, 28));
         mainPanel.setBackground(new Color(250, 251, 253));
 
         // Title Header
         JLabel headerLabel = new JLabel(expense == null ? "Log New Expense Entry" : "Edit Expense Entry");
-        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         headerLabel.setForeground(new Color(33, 37, 41));
         headerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(headerLabel);
@@ -57,10 +57,10 @@ public class ExpenseDialog extends JDialog {
         amountField = new JTextField();
         styleTextField(amountField);
         if (expense != null) {
-            amountField.setText(String.format("%.2f", expense.getAmount()));
+            amountField.setText(String.format(java.util.Locale.US, "%.2f", expense.getAmount()));
         }
         mainPanel.add(amountField);
-        mainPanel.add(Box.createVerticalStrut(12));
+        mainPanel.add(Box.createVerticalStrut(14));
 
         // Category ComboBox
         mainPanel.add(createLabel("Category:"));
@@ -80,31 +80,35 @@ public class ExpenseDialog extends JDialog {
         }
         categoryComboBox = new JComboBox<>(catModel);
         categoryComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        categoryComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        categoryComboBox.setPreferredSize(new Dimension(0, 40));
         categoryComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (expense != null) {
             categoryComboBox.setSelectedItem(expense.getCategory());
         }
         mainPanel.add(categoryComboBox);
-        mainPanel.add(Box.createVerticalStrut(12));
+        mainPanel.add(Box.createVerticalStrut(14));
 
-        // Date Field (YYYY-MM-DD)
-        mainPanel.add(createLabel("Date (YYYY-MM-DD):"));
-        dateField = new JTextField();
-        styleTextField(dateField);
-        dateField.setText(expense != null ? expense.getDate().toString() : LocalDate.now().toString());
-        mainPanel.add(dateField);
-        mainPanel.add(Box.createVerticalStrut(12));
+        // Date Picker Field
+        mainPanel.add(createLabel("Date:"));
+        datePicker = new DatePickerField("Select date");
+        datePicker.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        datePicker.setPreferredSize(new Dimension(0, 40));
+        datePicker.setAlignmentX(Component.LEFT_ALIGNMENT);
+        datePicker.setDate(expense != null ? expense.getDate() : LocalDate.now());
+        mainPanel.add(datePicker);
+        mainPanel.add(Box.createVerticalStrut(14));
 
         // Notes Field
         mainPanel.add(createLabel("Notes / Description (Optional):"));
         notesArea = new JTextArea(3, 20);
-        notesArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        notesArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         notesArea.setLineWrap(true);
         notesArea.setWrapStyleWord(true);
         JScrollPane notesScroll = new JScrollPane(notesArea);
         notesScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        notesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        notesScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
+        notesScroll.setPreferredSize(new Dimension(0, 85));
         if (expense != null && expense.getNotes() != null) {
             notesArea.setText(expense.getNotes());
         }
@@ -131,7 +135,7 @@ public class ExpenseDialog extends JDialog {
 
     private JLabel createLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
         label.setForeground(new Color(70, 80, 95));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
@@ -139,13 +143,14 @@ public class ExpenseDialog extends JDialog {
 
     private void styleTextField(JTextField tf) {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        tf.setPreferredSize(new Dimension(0, 40));
         tf.setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
     private void onSave() {
         String amountText = amountField.getText().trim();
-        String dateText = dateField.getText().trim();
+        LocalDate date = datePicker.getDate();
         String category = (String) categoryComboBox.getSelectedItem();
         String notes = notesArea.getText().trim();
 
@@ -162,11 +167,8 @@ public class ExpenseDialog extends JDialog {
             return;
         }
 
-        LocalDate date;
-        try {
-            date = LocalDate.parse(dateText);
-        } catch (DateTimeParseException e) {
-            JOptionPane.showMessageDialog(this, "Invalid date format. Use YYYY-MM-DD (e.g. 2026-08-01).", "Invalid Date", JOptionPane.ERROR_MESSAGE);
+        if (date == null) {
+            JOptionPane.showMessageDialog(this, "Please select a date.", "Missing Date", JOptionPane.ERROR_MESSAGE);
             return;
         }
 

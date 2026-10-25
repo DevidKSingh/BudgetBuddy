@@ -42,12 +42,12 @@ public class StyledButton extends JButton {
     }
 
     private void initStyle() {
-        setFont(new Font("Segoe UI", Font.BOLD, 13));
+        setFont(new Font("Segoe UI", Font.BOLD, 14));
         setFocusPainted(false);
         setBorderPainted(false);
         setContentAreaFilled(false); // we paint ourselves
         setCursor(new Cursor(Cursor.HAND_CURSOR));
-        setBorder(new EmptyBorder(8, 18, 8, 18));
+        setBorder(new EmptyBorder(10, 20, 10, 20));
 
         switch (type) {
             case PRIMARY:

@@ -144,10 +144,34 @@ public class ExpenseTrackerTest {
             boolean incDeleted = service.deleteIncome(inc1.getId());
             assertCondition(incDeleted, "deleteIncome should return true");
             assertCondition(service.getExpenseById(inc1.getId()) == null, "Deleted income should not be found");
-
             System.out.println("PASSED.");
 
-            System.out.println("\nALL 10 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
+            // Test 11: Complex notes with commas and quotes persistence
+            System.out.print("[TEST 11] Notes with commas & special characters... ");
+            Expense commaExp = new Expense(88.50, "Food", LocalDate.of(2026, 8, 10), "Grocery: milk, cheese, bread, and apples");
+            service.addExpense(commaExp);
+
+            ExpenseService commaReload = new ExpenseService(storageManager);
+            Expense reloadedComma = commaReload.getExpenseById(commaExp.getId());
+            assertCondition(reloadedComma != null, "Expense with commas was not reloaded");
+            assertCondition("Grocery: milk, cheese, bread, and apples".equals(reloadedComma.getNotes()),
+                    "Notes with commas corrupted! Got: " + reloadedComma.getNotes());
+            System.out.println("PASSED.");
+
+            // Test 12: CSV Export & Import with Income / Expense Type
+            System.out.print("[TEST 12] CSV Export/Import preserving Type... ");
+            File csvTypeFile = new File(tempTestDir, "export_types.csv");
+            Expense freshIncome = new Expense(500.00, "Freelance", LocalDate.of(2026, 8, 12), "Design gig", true);
+            service.addIncome(freshIncome);
+            service.exportToCsv(csvTypeFile, null);
+
+            List<Expense> parsedCsv = com.expensetracker.storage.CsvExporter.importFromCsv(csvTypeFile);
+            Expense matchedInc = parsedCsv.stream().filter(x -> x.getId().equals(freshIncome.getId())).findFirst().orElse(null);
+            assertCondition(matchedInc != null, "Exported income record not found in parsed CSV");
+            assertCondition(matchedInc.isIncome(), "Parsed CSV entry should preserve isIncome=true");
+            System.out.println("PASSED.");
+
+            System.out.println("\nALL 12 AUTOMATED TESTS PASSED SUCCESSFULLY! ✅");
 
         } catch (Throwable t) {
             System.err.println("\nTEST FAILED!");
